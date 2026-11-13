@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<title>Beat Tapper · FPS.Center</title>
+<title>Accent Tapper · FPS.Center</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#121212">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
          padding:max(12px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom)); max-width:1400px; margin:0 auto;
          -webkit-user-select:none; user-select:none; }
   header { display:flex; align-items:center; gap:10px; }
-  h1 { margin:0; font-size:22px; font-weight:900; letter-spacing:-.3px; text-transform:uppercase; white-space:nowrap; }
+  h1 { margin:0; font-size:20px; font-weight:900; letter-spacing:-.3px; text-transform:uppercase; white-space:nowrap; }
   h1 span { color:var(--green); }
   #pick { flex:1; min-width:0; text-align:left; font-size:15px; font-weight:700; color:var(--muted); background:var(--card2);
           border:2px dashed var(--line); border-radius:14px; padding:10px 12px; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -33,6 +33,14 @@
   .bar > * { flex:1; min-width:0; }
   .bar button { padding:10px 4px; }
   #play { font-size:22px; }
+  .seg { display:flex; flex:2.7 !important; }
+  .seg button { flex:1; min-width:0; font-size:14px; padding:10px 2px; }
+  #loopA, #loopB { flex:1.15; padding:10px 2px; } #loopBtn, #snapBtn { flex:.8; padding:10px 2px; }
+  .seg button:first-child { border-radius:14px 0 0 14px; } .seg button:last-child { border-radius:0 14px 14px 0; border-left:0; }
+  #modeRow > button { font-size:15px; }
+  #loopA.set, #loopB.set { color:#4DA3FF; border-color:#2b4d73; }
+  #loopBtn.on { background:#4DA3FF; border-color:#4DA3FF; color:#0B0B0B; }
+  #snapBtn.on { background:#FFD84D; border-color:#FFD84D; color:#0B0B0B; }
   .time { font-variant-numeric:tabular-nums; font-size:16px; font-weight:800; text-align:center; white-space:nowrap; flex:0 0 auto !important; }
   canvas { width:100%; display:block; border-radius:12px; background:var(--deep); touch-action:none; }
   #overview { height:48px; }
@@ -105,7 +113,7 @@
 </head>
 <body>
 <header>
-  <h1>Beat <span>Tapper</span></h1>
+  <h1>Accent <span>Tapper</span></h1>
   <label id="pick" for="file">📂 Wybierz utwór…</label>
   <input id="file" type="file" accept="audio/*,video/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" hidden>
   <button id="libBtn" title="Biblioteka muzyki: auto siatka bitów">📚<span class="desk"> Biblioteka</span></button>
@@ -123,6 +131,12 @@
   <div class="time" id="time">0:00.00</div>
   <button class="spd on" data-r="1">1×</button><button class="spd" data-r="0.75">0.75×</button><button class="spd" data-r="0.5">0.5×</button>
 </div>
+<div class="bar" id="modeRow">
+  <div class="seg" title="Co stukasz: akcenty (uderzenia, które czujesz) albo równy bit"><button id="mAcc" class="on">Akcenty</button><button id="mBeat">Bit</button></div>
+  <button id="loopA" title="Początek pętli (klawisz A)">A</button><button id="loopB" title="Koniec pętli (klawisz B)">B</button>
+  <button id="loopBtn" title="Powtarzaj A–B (L). Przytrzymaj = usuń A/B">🔁<span class="desk"> Pętla</span></button>
+  <button id="snapBtn" title="Podgląd: przyciągnij akcenty do najsilniejszego uderzenia z analizy (±90 ms)">🧲<span class="desk"> Snap</span></button>
+</div>
 
 <div id="info">
 <div id="edit">
@@ -131,9 +145,9 @@
   <button id="del" class="danger ib">🗑</button><button id="desel" class="ib">✕</button>
 </div>
 <div class="stats">
-  <div class="stat"><div class="k">BPM teraz</div><div class="v g" id="sLive">–</div></div>
-  <div class="stat"><div class="k">BPM całość</div><div class="v" id="sBpm">–</div></div>
-  <div class="stat"><div class="k">Bity</div><div class="v" id="sBeats">0</div></div>
+  <div class="stat"><div class="k" id="kLive">Akcenty</div><div class="v g" id="sLive">0</div></div>
+  <div class="stat"><div class="k" id="kBpm">Snap</div><div class="v" id="sBpm">–</div></div>
+  <div class="stat"><div class="k" id="kBeats">Pętla</div><div class="v" id="sBeats">–</div></div>
   <div class="stat"><div class="k">Przejście</div><div class="v" id="sPass">0</div></div>
   <div class="stat desk"><div class="k">Dropy</div><div class="v r" id="sDrops">0</div></div>
   <div class="stat desk"><div class="k">Opóźnienie</div><div class="v" id="sLat">0 ms</div></div>
@@ -141,7 +155,7 @@
 </div>
 
 <div id="pad">
-  <button id="tap">TAP<small>stukaj w rytm<span class="desk"> · SPACJA</span></small></button>
+  <button id="tap">TAP<small><span id="tapHint">stukaj akcenty</span><span class="desk"> · SPACJA</span></small></button>
   <button id="dropBtn">DROP<small class="desk kbdh">D</small></button>
 </div>
 
@@ -154,12 +168,16 @@
   <button id="helpBtn">?</button>
 </div>
 <div id="help">
-  <b>Telefon:</b> Play → stukaj w duży przycisk TAP w rytm, DROP w momencie dropu. Przeciągnij falę, żeby przewijać.
-  Dotknij zielonej kreski, żeby ją wybrać → przesuń o 10 ms albo usuń. Kilka przejść tego samego fragmentu jest uśrednianych (60 ms).
+  <b>Akcenty</b> (domyślnie): stukaj uderzenia, które czujesz (np. 3 z 4 w montagem), nie równy bit. Nie musisz trafiać idealnie:
+  na serwerze każdy tap jest przyciągany do najsilniejszego uderzenia w ±90 ms. <b>Bit</b> = równe stukanie + BPM.<br>
+  <b>Pętla:</b> A = początek, B = koniec (włącza 🔁), stukasz ten sam fragment kilka razy, przejścia są uśredniane (60 ms). Przytrzymaj 🔁 = usuń A/B. Tempo 0.75×/0.5× zwalnia.<br>
+  <b>🧲 Snap:</b> po wczytaniu analizy w 📚 widać blade żółte kreski uderzeń; Snap pokazuje na żółto, gdzie trafiłby każdy akcent (tylko podgląd, eksport go dołącza).<br>
+  <b>Telefon:</b> Play → stukaj w duży przycisk TAP, DROP w momencie dropu. Przeciągnij falę, żeby przewijać.
+  Dotknij zielonej kreski, żeby ją wybrać → przesuń o 10 ms albo usuń.
   Na koniec „Wyślij JSON” → Telegram.<br>
   <b>Komputer:</b> <kbd>SPACJA</kbd> tap · <kbd>D</kbd> drop · <kbd>Backspace</kbd> cofnij · <kbd>R</kbd> wyczyść · <kbd>Enter</kbd> play/pauza ·
   <kbd>←</kbd><kbd>→</kbd> 1 s (z Shift 5 s) albo przesuń wybrany bit o 10 ms · <kbd>Delete</kbd> usuń wybrany · <kbd>Esc</kbd> odznacz ·
-  <kbd>C</kbd> kliki · <kbd>E</kbd> eksport. Wybrane kreski można też przeciągać myszką.
+  <kbd>C</kbd> kliki · <kbd>E</kbd> eksport · <kbd>A</kbd>/<kbd>B</kbd> pętla · <kbd>L</kbd> pętla on/off (Shift+L usuń) · <kbd>M</kbd> akcenty/bit · <kbd>S</kbd> snap. Wybrane kreski można też przeciągać myszką.
   <textarea id="out" readonly></textarea>
 </div>
 
@@ -276,15 +294,76 @@ const BT = (() => {
   }
 
   const r3 = (x) => Math.round(x * 1000) / 1000;
-  function buildExport({ file, duration, passes, drops, latency_ms }) {
+  /** mode "accents" (default): taps = accents he feels, no BPM; mode "beats": steady beat + BPM.
+   *  snap = optional snapPreview() result, exported as a preview only (analyze.py does the real refinement). */
+  function buildExport({ file, duration, passes, drops, latency_ms, mode = "accents", snap = null }) {
     const beats = clusters(passes, 0.06).map((c) => c.t);
-    const bpm = estimateBpm(beats);
-    return {
-      file, duration: r3(duration), bpm: bpm ? Math.round(bpm * 100) / 100 : null, latency_ms,
+    const bpm = mode === "beats" ? estimateBpm(beats) : null;
+    const out = {
+      file, duration: r3(duration), mode, bpm: bpm ? Math.round(bpm * 100) / 100 : null, latency_ms,
       beats: beats.map(r3), drops: mergeTaps(drops, 1.0).map(r3),
       passes: passes.length, taps_raw: passes.map((p) => p.map(r3)),
-      created: new Date().toISOString(), tool: "fps.center beat-tapper v2",
+      created: new Date().toISOString(), tool: "fps.center accent-tapper v3",
     };
+    if (mode === "accents") out.accents = out.beats.slice();
+    if (mode === "accents" && snap && snap.items) out.snap_preview = { latency_ms: Math.round(snap.latency * 1000), window_ms: snap.window_ms,
+      accents: snap.items.map((s) => ({ t_raw: r3(s.raw), t: r3(s.t), shift_ms: Math.round((s.t - s.raw) * 1000), snapped: s.snapped })) };
+    return out;
+  }
+
+  /** Strength of each onset time from the page's own min/max envelope (pps buckets/s): loudness rise right after
+   *  the onset vs just before it. Used when the analysis JSON has onset times without strengths. */
+  function onsetStrengths(times, peaks, pps) {
+    if (!peaks || !times.length) return times.map(() => 1);
+    const n = peaks.maxs.length, amp = (i) => Math.max(Math.abs(peaks.mins[i]), Math.abs(peaks.maxs[i]));
+    const raw = times.map((t) => {
+      const i = Math.round(t * pps), a = Math.max(0, i - Math.round(0.04 * pps)), b = Math.max(0, i - Math.round(0.005 * pps));
+      let pre = 0, k = 0; for (let j = a; j <= b && j < n; j++) { pre += amp(j); k++; } pre = k ? pre / k : 0;
+      let post = 0; for (let j = i; j <= i + Math.round(0.03 * pps) && j < n; j++) post = Math.max(post, amp(j));
+      return Math.max(0, post - pre);
+    });
+    const top = Math.max(...raw) || 1;
+    return raw.map((v) => v / top);
+  }
+
+  /** Snap preview: each tap -> the strongest onset peak (peaks = [{t, s}] sorted) inside [tap-lat-before, tap-lat+after],
+   *  mild preference for the nearer one; lat = median tap-onset offset of the confident taps (like analyze.py).
+   *  conf = strength / median strength of the peaks within ±1 s; conf < confMin or nothing in the window = not snapped. */
+  function snapPreview(taps, peaks, { before = 0.09, after = 0.09, confMin = 1.5, fixLatency = true } = {}) {
+    const P = peaks.filter((p) => Number.isFinite(p.t) && Number.isFinite(p.s)).sort((a, b) => a.t - b.t);
+    const T = P.map((p) => p.t);
+    const lower = (x) => { let lo = 0, hi = T.length; while (lo < hi) { const m = (lo + hi) >> 1; if (T[m] < x) lo = m + 1; else hi = m; } return lo; };
+    const localMed = (t) => { const a = lower(t - 1), b = lower(t + 1); const v = P.slice(a, b).map((p) => p.s); return v.length ? median(v) : NaN; };
+    const pick = (c, bf, af) => {
+      const sig = Math.max(bf, af);
+      let best = -1, bs = -1;
+      for (let i = lower(c - bf); i < P.length && P[i].t <= c + af; i++) {
+        const sc = P[i].s * Math.exp(-0.5 * ((P[i].t - c) / sig) ** 2);
+        if (sc > bs) { bs = sc; best = i; }
+      }
+      if (best < 0) return null;
+      return { i: best, conf: P[best].s / (localMed(P[best].t) || 1e-9) };
+    };
+    let lat = 0;
+    if (fixLatency && taps.length >= 5 && P.length) {
+      for (const [bf, af] of [[0.15, 0.15], [before, after]]) {
+        const d = [];
+        for (const x of taps) { const r = pick(x - lat, bf, af); if (r && r.conf >= confMin) d.push(x - P[r.i].t); }
+        if (d.length >= Math.max(5, 0.3 * taps.length)) lat = median(d);
+      }
+      if (Math.abs(lat) < 0.003) lat = 0;
+    }
+    const items = taps.map((x) => {
+      const r = pick(x - lat, before, after);
+      const ok = !!r && r.conf >= confMin;
+      return { raw: x, t: ok ? P[r.i].t : x, snapped: ok, conf: r ? Math.round(r.conf * 100) / 100 : 0 };
+    });
+    return { items, latency: lat, window_ms: [-Math.round(before * 1000), Math.round(after * 1000)], n: items.filter((s) => s.snapped).length };
+  }
+
+  /** A–B repeat: time to jump to (A) when the playhead reached B, else null. */
+  function loopWrap(ct, a, b, on) {
+    return on && Number.isFinite(a) && Number.isFinite(b) && b - a > 0.2 && ct >= b ? a : null;
   }
 
   /** Min/max envelope of mono samples into `buckets` bins. */
@@ -325,14 +404,18 @@ const BT = (() => {
     const num = (a) => (Array.isArray(a) ? a.map((x) => (typeof x === "number" ? x : x && Number(x.t))).filter(Number.isFinite).sort((p, q) => p - q) : []);
     const one = (t) => {
       const beats = num(t.beats && t.beats.length ? t.beats : t.grid_beats);
-      if (!beats.length) return null;
+      // onset peaks: accents_final.json "onset_peaks" [{t, s}] carry strengths; analysis.json / LIBRARY.json "onsets" are times only
+      const onsets = Array.isArray(t.onset_peaks) ? t.onset_peaks.map((p) => ({ t: Number(p.t), s: Number(p.s) })).filter((p) => Number.isFinite(p.t))
+        : Array.isArray(t.onsets) ? num(t.onsets).map((x) => ({ t: x, s: null })) : [];
+      onsets.sort((p, q) => p.t - q.t);
+      if (!beats.length && !onsets.length) return null;
       let drops = num(t.drops);
       if (!drops.length && Array.isArray(t.drop_candidates)) drops = num(t.drop_candidates.map((c) => c.beat ?? c.t));
       const windows = (t.reel_windows || []).map((w, i) => ({ rank: w.rank || i + 1, start: +w.start, end: +w.end,
         length: +(w.length || w.end - w.start), drop_rel: w.drop_rel ?? null })).filter((w) => Number.isFinite(w.start) && w.end > w.start);
       const name = t.title ? `${t.artist ? t.artist + " - " : ""}${t.title}` : (t.file || t.audio || fallbackName || "utwór");
       return { id: t.id || null, name, title: t.title || name, artist: t.artist || "", bpm: t.bpm || estimateBpm(beats),
-               duration: Number(t.duration) || null, beats, downbeats: num(t.downbeats), drops, windows,
+               duration: Number(t.duration) || null, beats, downbeats: num(t.downbeats), drops, windows, onsets,
                file: t.file || t.audio || (t.files && t.files.phone_mp3) || "" };
     };
     const list = Array.isArray(doc.tracks) ? doc.tracks.map(one).filter(Boolean) : [one(doc)].filter(Boolean);
@@ -363,7 +446,8 @@ const BT = (() => {
   };
 
   return { median, clusters, mergeTaps, estimateBpm, songTimeAt, tapToSongTime, calibrationOffset, addTap,
-           nudge, removeMembers, nearest, buildExport, computePeaks, makeClickWav, parseRef, matchTrack, fmt };
+           nudge, removeMembers, nearest, buildExport, computePeaks, makeClickWav, parseRef, matchTrack, fmt,
+           onsetStrengths, snapPreview, loopWrap };
 })();
 if (typeof module !== "undefined") module.exports = BT;
 </script>
@@ -383,6 +467,8 @@ if (typeof module !== "undefined") module.exports = BT;
     file: null, fileKey: null, duration: 0, peaks: null, pps: 200,
     passes: [], drops: [], history: [], rate: 1, clicks: false, sel: null,
     latency: Number(localStorage.getItem("bt.latency_ms") || 0),
+    mode: localStorage.getItem("bt.mode") === "beats" ? "beats" : "accents",
+    loopA: null, loopB: null, loopOn: false, snapOn: localStorage.getItem("bt.snap") === "1", snap: null,
   };
   window.__bt = { S, audio, BT };
 
@@ -423,7 +509,8 @@ if (typeof module !== "undefined") module.exports = BT;
   function remember() { S.history.push(snapshot()); if (S.history.length > 300) S.history.shift(); }
   function save() { if (S.fileKey) try { localStorage.setItem(S.fileKey, snapshot()); } catch {} }
   const beatClusters = () => BT.clusters(S.passes, 0.06);
-  const changed = () => { save(); update(); draw(); };
+  const changed = () => { save(); recomputeSnap(); update(); draw(); };
+  window.__bt.refresh = () => { recomputeSnap(); update(); draw(); };
 
   // ---------- file loading ----------
   $("file").addEventListener("change", (e) => e.target.files[0] && loadFile(e.target.files[0]));
@@ -447,7 +534,7 @@ if (typeof module !== "undefined") module.exports = BT;
     } catch (err) {
       console.error(err); $("pick").textContent = `⚠️ ${file.name}: nie da się zdekodować (mp3/m4a/wav)`; return;
     }
-    S.passes = []; S.drops = []; S.history = []; S.sel = null;
+    S.passes = []; S.drops = []; S.history = []; S.sel = null; S.loopA = S.loopB = null; S.loopOn = false;
     const prev = localStorage.getItem(S.fileKey);
     if (prev) try {
       const p = JSON.parse(prev); S.passes = p.passes || []; S.drops = p.drops || [];
@@ -458,7 +545,7 @@ if (typeof module !== "undefined") module.exports = BT;
     audio.currentTime = 0;
     attachRef(S.lib && BT.matchTrack(S.lib.tracks, file.name, S.duration) || S.pendingRef);
     S.pendingRef = null;
-    update(); draw();
+    loopUI();
   }
 
   // ---------- music library: auto beat grid / drops / reel windows as faint reference ticks ----------
@@ -467,7 +554,7 @@ if (typeof module !== "undefined") module.exports = BT;
   const refKey = (t) => (t ? t.id || t.name : null);
   const bpmTxt = (t) => (t.bpm ? `${Number(t.bpm).toFixed(1)} BPM` : "");
   function attachRef(t) {
-    S.ref = t || null;
+    S.ref = t || null; refPeaksCache = null; recomputeSnap();
     if (!S.ref) return renderLib();
     const off = S.ref.duration && S.duration && Math.abs(S.ref.duration - S.duration) > 2;
     toast(off ? `⚠️ Siatka „${S.ref.name}” ma inną długość (${BT.fmt(S.ref.duration, 0)}), sprawdź utwór` : `📚 Auto siatka: ${S.ref.name} · ${bpmTxt(S.ref)}`, 3500);
@@ -514,6 +601,77 @@ if (typeof module !== "undefined") module.exports = BT;
   });
   renderLib();
 
+  // ---------- mode (accents | beats), snap preview, A–B loop ----------
+  let refPeaksCache = null;
+  /** onset peaks [{t, s}] of the attached analysis; strengths from the JSON or measured on this file's waveform */
+  function refPeaks() {
+    const R = S.ref; if (!R || !R.onsets || !R.onsets.length || !S.peaks) return null;
+    if (refPeaksCache && refPeaksCache.ref === R && refPeaksCache.peaks === S.peaks) return refPeaksCache.list;
+    const need = R.onsets.some((o) => !Number.isFinite(o.s));
+    const st = need ? BT.onsetStrengths(R.onsets.map((o) => o.t), S.peaks, S.pps) : null;
+    const list = R.onsets.map((o, i) => ({ t: o.t, s: need ? st[i] : o.s }));
+    const mx = Math.max(...list.map((o) => o.s)) || 1;
+    refPeaksCache = { ref: R, peaks: S.peaks, list, mx, measured: need };
+    return list;
+  }
+  function recomputeSnap() {
+    const P = S.mode === "accents" && S.snapOn ? refPeaks() : null;
+    // dense onset_peaks with strengths (accents_final.json): confidence gate like analyze.py; sparse picked onsets
+    // (analysis.json / LIBRARY.json, strengths measured here): every one is a real hit -> snap to the strongest in the window
+    S.snap = P ? BT.snapPreview(beatClusters().map((c) => c.t), P, { before: 0.09, after: 0.09, confMin: refPeaksCache.measured ? 0 : 1.5 }) : null;
+  }
+  function setMode(m) {
+    S.mode = m === "beats" ? "beats" : "accents";
+    try { localStorage.setItem("bt.mode", S.mode); } catch {}
+    $("mAcc").classList.toggle("on", S.mode === "accents"); $("mBeat").classList.toggle("on", S.mode === "beats");
+    $("tapHint").textContent = S.mode === "accents" ? "stukaj akcenty" : "stukaj w rytm";
+    $("snapBtn").style.display = S.mode === "accents" ? "" : "none";
+    recomputeSnap(); update(); draw();
+  }
+  $("mAcc").addEventListener("click", () => setMode("accents"));
+  $("mBeat").addEventListener("click", () => setMode("beats"));
+  function toggleSnap() {
+    if (S.mode !== "accents") return;
+    if (!S.snapOn && !refPeaks()) {
+      return toast(S.peaks ? "Snap potrzebuje analizy z onsetami: 📚 → .analysis.json / LIBRARY.json" : "Najpierw wybierz utwór", 3500);
+    }
+    S.snapOn = !S.snapOn; try { localStorage.setItem("bt.snap", S.snapOn ? "1" : "0"); } catch {}
+    recomputeSnap(); update(); draw();
+    if (S.snapOn && S.snap) toast(`🧲 Snap: ${S.snap.n}/${S.snap.items.length} akcentów ma wyraźne uderzenie w ±90 ms`, 3000);
+  }
+  $("snapBtn").addEventListener("click", toggleSnap);
+  function loopUI() {
+    const f = (t) => (t == null ? "" : `<small style="font-size:12px;font-weight:700"> ${BT.fmt(t, innerWidth < 900 ? 0 : 1)}</small>`);
+    $("loopA").innerHTML = "A" + f(S.loopA); $("loopB").innerHTML = "B" + f(S.loopB);
+    $("loopA").classList.toggle("set", S.loopA != null); $("loopB").classList.toggle("set", S.loopB != null);
+    $("loopBtn").classList.toggle("on", S.loopOn); update(); draw();
+  }
+  function setA() {
+    if (!S.peaks) return toast("Najpierw wybierz utwór");
+    S.loopA = audio.currentTime; if (S.loopB != null && S.loopB <= S.loopA + 0.2) { S.loopB = null; S.loopOn = false; }
+    loopUI(); toast(`A = ${BT.fmt(S.loopA)}`);
+  }
+  function setB() {
+    if (!S.peaks) return toast("Najpierw wybierz utwór");
+    const t = audio.currentTime;
+    if (S.loopA == null || t <= S.loopA + 0.2) return toast("Najpierw ustaw A (B musi być po A)");
+    S.loopB = t; S.loopOn = true; loopUI(); toast(`B = ${BT.fmt(t)} · 🔁 pętla ON`);
+    if (!audio.paused) seek(S.loopA);
+  }
+  function toggleLoop() {
+    if (S.loopA == null || S.loopB == null) return toast("Ustaw A i B (np. w trakcie odtwarzania)");
+    S.loopOn = !S.loopOn; loopUI(); toast(S.loopOn ? "🔁 Pętla ON" : "Pętla OFF");
+  }
+  function clearLoop() { S.loopA = S.loopB = null; S.loopOn = false; loopUI(); toast("Usunięto A/B"); }
+  $("loopA").addEventListener("click", setA);
+  $("loopB").addEventListener("click", setB);
+  $("loopBtn").addEventListener("click", toggleLoop);
+  $("loopBtn").addEventListener("contextmenu", (e) => { e.preventDefault(); clearLoop(); });
+  setInterval(() => {
+    const j = BT.loopWrap(audio.currentTime, S.loopA, S.loopB, S.loopOn && !audio.paused);
+    if (j !== null) { audio.currentTime = j; schedNext = 0; S.forcePass = true; }   // every loop = a new pass
+  }, 10);
+
   // ---------- transport ----------
   function togglePlay() {
     if (!S.peaks) return toast("Najpierw wybierz utwór");
@@ -538,7 +696,9 @@ if (typeof module !== "undefined") module.exports = BT;
     if (!S.peaks) return toast("Najpierw wybierz utwór");
     if (audio.paused) return toast("Najpierw ▶ Play, potem stukaj w trakcie");
     const t = BT.tapToSongTime(clock.at(evTs), S.latency, S.rate);
-    remember(); BT.addTap(S.passes, t);
+    remember();
+    if (S.forcePass) { S.forcePass = false; const last = S.passes[S.passes.length - 1]; if (last && last.length) S.passes.push([]); }
+    BT.addTap(S.passes, t);
     flash("hit", $("tap")); changed();
   }
   function markDrop(evTs) {
@@ -580,7 +740,8 @@ if (typeof module !== "undefined") module.exports = BT;
     const s = selected();
     $("edit").classList.toggle("open", !!s);
     if (s) {
-      const n = S.sel.type === "drop" ? "DROP" : S.sel.members.length > 1 ? `Bit (${S.sel.members.length} tapy)` : "Bit";
+      const w = S.mode === "accents" ? "Akcent" : "Bit";
+      const n = S.sel.type === "drop" ? "DROP" : S.sel.members.length > 1 ? `${w} (${S.sel.members.length} tapy)` : w;
       const t = S.sel.type === "drop" ? s.t : beatTimeOfSel();
       $("selLbl").innerHTML = `${n}<br>${BT.fmt(t, 3)}`;
     }
@@ -619,11 +780,14 @@ if (typeof module !== "undefined") module.exports = BT;
   $("desel").addEventListener("click", () => { S.sel = null; selUI(); draw(); });
 
   // ---------- export / share ----------
-  function exportData() { return BT.buildExport({ file: S.file.name, duration: S.duration, passes: S.passes, drops: S.drops, latency_ms: S.latency }); }
+  function exportData() {
+    return BT.buildExport({ file: S.file.name, duration: S.duration, passes: S.passes, drops: S.drops, latency_ms: S.latency,
+                            mode: S.mode, snap: S.mode === "accents" && S.snapOn ? S.snap : null });
+  }
   async function doExport() {
     if (!S.file) return;
     const data = exportData(), txt = JSON.stringify(data);
-    const name = S.file.name.replace(/\.[^.]+$/, "") + ".beats.json";
+    const name = S.file.name.replace(/\.[^.]+$/, "") + (S.mode === "accents" ? ".accents.json" : ".beats.json");
     $("out").value = txt;
     if (isTouch && navigator.share) {
       try {
@@ -663,6 +827,11 @@ if (typeof module !== "undefined") module.exports = BT;
     }
     if (k === "KeyC") return toggleClicks();
     if (k === "KeyE") return doExport();
+    if (k === "KeyA") return setA();
+    if (k === "KeyB") return setB();
+    if (k === "KeyL") return e.shiftKey ? clearLoop() : toggleLoop();
+    if (k === "KeyM") return setMode(S.mode === "accents" ? "beats" : "accents");
+    if (k === "KeyS") return toggleSnap();
   }, true);
   window.addEventListener("keyup", (e) => { if (e.code === "Space") e.preventDefault(); }, true);
   document.querySelectorAll("button").forEach((b) => b.addEventListener("keydown", (e) => { if (e.code === "Space" || e.code === "Enter") e.preventDefault(); }));
@@ -748,6 +917,16 @@ if (typeof module !== "undefined") module.exports = BT;
       g.fillRect(X(wn.start), 0, X(wn.end) - X(wn.start), h);
       if (wn.start >= t0) { g.fillStyle = "rgba(0,255,128,.6)"; g.fillText(`#${wn.rank}`, X(wn.start) + 3, detail ? h - 26 : h - 4); }
     });
+    const OP = S.mode === "accents" ? refPeaks() : null;
+    if (OP && detail) {
+      const mx = refPeaksCache.mx;
+      g.fillStyle = "rgba(255,216,77,.30)";
+      for (const o of OP) {
+        if (o.t < t0 || o.t > t1) continue;
+        const len = 6 + Math.min(1, o.s / mx) * h * 0.42;
+        g.fillRect(X(o.t) - 0.75, h - len, 1.5, len);
+      }
+    }
     if (detail) {
       const db = new Set(R.downbeats.map((x) => Math.round(x * 1000)));
       for (const b of R.beats) {
@@ -779,6 +958,16 @@ if (typeof module !== "undefined") module.exports = BT;
       g.fillRect(X(c.t) - wdt / 2, detail ? 4 : 0, wdt, detail ? h - 28 : h);
       if (isSel && detail) { g.beginPath(); g.arc(X(c.t), 10, 7, 0, 7); g.fill(); }
     }
+    if (S.snap && S.mode === "accents") {
+      g.fillStyle = "#FFD84D"; g.strokeStyle = "rgba(255,216,77,.75)"; g.lineWidth = 1;
+      for (const it of S.snap.items) {
+        if (!it.snapped || it.t < t0 || it.t > t1) continue;
+        if (!detail) { g.fillRect(X(it.t) - 0.5, 0, 1, h / 2); continue; }
+        g.fillRect(X(it.t) - 1, 4, 2, h * 0.5);
+        g.beginPath(); g.moveTo(X(it.raw), h * 0.5 + 4); g.lineTo(X(it.t), h * 0.5 + 4); g.stroke();
+        g.beginPath(); g.arc(X(it.t), 6, 3.5, 0, 7); g.fill();
+      }
+    }
     S.drops.forEach((t, i) => {
       if (t < t0 || t > t1) return;
       const isSel = S.sel && S.sel.type === "drop" && S.sel.idx === i;
@@ -786,6 +975,14 @@ if (typeof module !== "undefined") module.exports = BT;
       g.font = "900 13px Inter, Segoe UI, sans-serif"; g.fillText("DROP", X(t) + 5, 14);
     });
     g.fillStyle = "#fff"; g.globalAlpha = 0.9; g.fillRect(X(audio.currentTime) - 1, 0, 2, h); g.globalAlpha = 1;
+  }
+  function drawLoop(g, w, h, t0, t1, detail) {
+    if (S.loopA == null) return;
+    const X = (t) => ((t - t0) / (t1 - t0)) * w, a = X(S.loopA), b = S.loopB != null ? X(S.loopB) : null;
+    if (b != null) { g.fillStyle = S.loopOn ? "rgba(77,163,255,.13)" : "rgba(77,163,255,.06)"; g.fillRect(a, 0, b - a, h); }
+    g.fillStyle = "#4DA3FF"; g.font = "900 12px Inter, Segoe UI, sans-serif";
+    g.fillRect(a - 1, 0, 2, h); if (detail) g.fillText("A", a + 3, h - 6);
+    if (b != null) { g.fillRect(b - 1, 0, 2, h); if (detail) g.fillText("B", b + 3, h - 6); }
   }
   function draw() {
     const [g1, w1, h1] = sizeCanvas($("overview")), [g2, w2, h2] = sizeCanvas($("detail"));
@@ -795,9 +992,11 @@ if (typeof module !== "undefined") module.exports = BT;
       g2.fillText("Dotknij kreski, by ją wybrać i przesunąć", 12, h2 / 2 + 16);
       return;
     }
+    drawLoop(g1, w1, h1, 0, S.duration, false);
     drawRef(g1, w1, h1, 0, S.duration, false, "bg"); drawWave(g1, w1, h1, 0, S.duration); drawRef(g1, w1, h1, 0, S.duration, false, "fg"); drawMarks(g1, w1, h1, 0, S.duration, false);
     const [bef, aft] = view(), ct = audio.currentTime, t0 = ct - bef, t1 = ct + aft;
     g2.fillStyle = "#1c1c1c"; for (let s = Math.ceil(t0); s <= t1; s++) g2.fillRect(((s - t0) / (t1 - t0)) * w2, 0, 1, h2);
+    drawLoop(g2, w2, h2, t0, t1, true);
     drawRef(g2, w2, h2, t0, t1, true, "bg"); drawWave(g2, w2, h2, t0, t1); drawRef(g2, w2, h2, t0, t1, true, "fg"); drawMarks(g2, w2, h2, t0, t1, true);
     $("time").innerHTML = `${BT.fmt(ct)}<span style="color:var(--muted)"> / ${BT.fmt(S.duration, 0)}</span>`;
   }
@@ -848,16 +1047,26 @@ if (typeof module !== "undefined") module.exports = BT;
   // ---------- stats ----------
   function update() {
     const cur = S.passes[S.passes.length - 1] || [];
-    const live = BT.estimateBpm(cur.slice(-16)), all = beatClusters().map((c) => c.t), bpm = BT.estimateBpm(all);
-    $("sLive").textContent = live ? live.toFixed(1) : "–";
-    $("sBpm").textContent = bpm ? bpm.toFixed(1) : S.ref && S.ref.bpm ? `≈${Number(S.ref.bpm).toFixed(1)}` : "–";
-    $("sBeats").textContent = all.length;
+    const all = beatClusters().map((c) => c.t);
+    $("snapBtn").classList.toggle("on", S.snapOn && S.mode === "accents");
+    if (S.mode === "accents") {   // accents: no BPM from taps (an accent pattern has no steady tempo)
+      $("kLive").textContent = "Akcenty"; $("sLive").textContent = all.length;
+      $("kBpm").textContent = "Snap ±90";
+      $("sBpm").textContent = S.snap ? `${S.snap.n}/${S.snap.items.length}` : refPeaks() ? "off" : "–";
+      $("kBeats").textContent = "Pętla"; $("sBeats").textContent = S.loopB != null ? (S.loopOn ? "ON" : "off") : "–";
+    } else {
+      const live = BT.estimateBpm(cur.slice(-16)), bpm = BT.estimateBpm(all);
+      $("kLive").textContent = "BPM teraz"; $("sLive").textContent = live ? live.toFixed(1) : "–";
+      $("kBpm").textContent = "BPM całość";
+      $("sBpm").textContent = bpm ? bpm.toFixed(1) : S.ref && S.ref.bpm ? `≈${Number(S.ref.bpm).toFixed(1)}` : "–";
+      $("kBeats").textContent = "Bity"; $("sBeats").textContent = all.length;
+    }
     $("sPass").textContent = S.passes.length;
     $("sDrops").textContent = BT.mergeTaps(S.drops, 1.0).length;
     $("sLat").textContent = `${S.latency} ms`; $("latShow").textContent = `${S.latency} ms`;
     if (audio.paused) draw();
   }
-  update(); draw();
+  setMode(S.mode); loopUI(); update(); draw();
 })();
 </script>
 </body>
