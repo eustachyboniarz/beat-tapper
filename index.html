@@ -81,6 +81,11 @@
   .dot.warm { background:#444; } .dot.now { outline:3px solid #fff; } .dot.ok { background:var(--green); border-color:var(--green); }
   #calMsg { font-size:18px; font-weight:800; min-height:48px; }
   #calTap { flex:1; }
+  #libBtn { flex:0 0 auto; padding:10px 12px; font-size:16px; }
+  #libList { display:flex; flex-direction:column; gap:8px; overflow:auto; flex:1 1 auto; }
+  .trk { text-align:left; display:block; width:100%; font-size:16px; padding:12px 14px; border-radius:14px; background:var(--card); white-space:normal; }
+  .trk.cur { border-color:var(--green); }
+  .trk small { display:block; color:var(--muted); font-size:13px; font-weight:700; margin-top:3px; }
   textarea#out { width:100%; height:110px; background:var(--deep); color:#cfcfcf; border:1px solid var(--line); border-radius:12px;
                  font:12px/1.4 ui-monospace, Consolas, monospace; padding:8px; display:none; -webkit-user-select:text; user-select:text; }
   @media (min-width:900px) {
@@ -103,6 +108,7 @@
   <h1>Beat <span>Tapper</span></h1>
   <label id="pick" for="file">📂 Wybierz utwór…</label>
   <input id="file" type="file" accept="audio/*,video/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" hidden>
+  <button id="libBtn" title="Biblioteka muzyki: auto siatka bitów">📚<span class="desk"> Biblioteka</span></button>
 </header>
 
 <canvas id="overview"></canvas>
@@ -164,6 +170,16 @@
   <div id="calMsg">Naciśnij Start.</div>
   <div class="bar"><button id="calStart" class="primary">Start</button><button id="latM">−5 ms</button><button id="latP">+5 ms</button><button id="latZ">0</button><button id="calClose">Zamknij</button></div>
   <button id="calTap" class="tapLike" style="border-radius:28px;font-size:56px;font-weight:900;color:var(--green);background:#151515;border:2px solid #2f2f2f;touch-action:none">TAP</button>
+</div>
+
+<div class="modal" id="lib">
+  <h2>Biblioteka</h2>
+  <p>Wczytaj <b>LIBRARY.json</b> z Drive (folder „06 Music library”) albo analizę jednego utworu (<b>.analysis.json</b>).
+     Potem wybierz utwór i jego MP3 z telefonu. Auto siatka bitów i dropów pojawi się jako blade kreski, stukasz dalej normalnie.</p>
+  <div class="bar"><button id="libLoad" class="primary">📄 Wczytaj<span class="desk"> JSON</span></button><button id="refToggle">Siatka: <span id="refState">ON</span></button><button id="libClose">Zamknij</button></div>
+  <input id="libFile" type="file" accept=".json,application/json,text/plain" hidden>
+  <div id="libList"></div>
+  <p id="libNow" style="font-size:14px"></p>
 </div>
 
 <div id="flash"></div>
@@ -301,6 +317,45 @@ const BT = (() => {
     return buf;
   }
 
+  /** Music library / analysis JSON -> {tracks:[{id,title,artist,bpm,duration,beats,downbeats,drops,windows}]}.
+   *  Accepts LIBRARY.json ({tracks:[...]}), one track's *.analysis.json, analyze.py's beats_final.json,
+   *  or this page's own export ({beats, drops:[s]}). Returns null when nothing usable is inside. */
+  function parseRef(doc, fallbackName = "") {
+    if (!doc || typeof doc !== "object") return null;
+    const num = (a) => (Array.isArray(a) ? a.map((x) => (typeof x === "number" ? x : x && Number(x.t))).filter(Number.isFinite).sort((p, q) => p - q) : []);
+    const one = (t) => {
+      const beats = num(t.beats && t.beats.length ? t.beats : t.grid_beats);
+      if (!beats.length) return null;
+      let drops = num(t.drops);
+      if (!drops.length && Array.isArray(t.drop_candidates)) drops = num(t.drop_candidates.map((c) => c.beat ?? c.t));
+      const windows = (t.reel_windows || []).map((w, i) => ({ rank: w.rank || i + 1, start: +w.start, end: +w.end,
+        length: +(w.length || w.end - w.start), drop_rel: w.drop_rel ?? null })).filter((w) => Number.isFinite(w.start) && w.end > w.start);
+      const name = t.title ? `${t.artist ? t.artist + " - " : ""}${t.title}` : (t.file || t.audio || fallbackName || "utwór");
+      return { id: t.id || null, name, title: t.title || name, artist: t.artist || "", bpm: t.bpm || estimateBpm(beats),
+               duration: Number(t.duration) || null, beats, downbeats: num(t.downbeats), drops, windows,
+               file: t.file || t.audio || (t.files && t.files.phone_mp3) || "" };
+    };
+    const list = Array.isArray(doc.tracks) ? doc.tracks.map(one).filter(Boolean) : [one(doc)].filter(Boolean);
+    return list.length ? { tracks: list, isLibrary: Array.isArray(doc.tracks) } : null;
+  }
+
+  /** Which library track is this audio file? 1) its YouTube id in the name ("... [id].mp3"),
+   *  2) the same file name stem, 3) the only track within 1.5 s of the duration. Else null. */
+  function matchTrack(tracks, fileName, duration) {
+    if (!tracks || !tracks.length) return null;
+    const fn = String(fileName || "");
+    const byId = tracks.find((t) => t.id && fn.includes(t.id));
+    if (byId) return byId;
+    const stem = (s) => String(s || "").split("/").pop().replace(/\.[^.]+$/, "").toLowerCase();
+    const byName = tracks.find((t) => t.file && stem(t.file) === stem(fn));
+    if (byName) return byName;
+    if (Number.isFinite(duration)) {
+      const near = tracks.filter((t) => t.duration && Math.abs(t.duration - duration) <= 1.5);
+      if (near.length === 1) return near[0];
+    }
+    return null;
+  }
+
   const fmt = (s, dec = 2) => {
     if (!Number.isFinite(s) || s < 0) s = 0;
     const m = Math.floor(s / 60), r = s - m * 60;
@@ -308,7 +363,7 @@ const BT = (() => {
   };
 
   return { median, clusters, mergeTaps, estimateBpm, songTimeAt, tapToSongTime, calibrationOffset, addTap,
-           nudge, removeMembers, nearest, buildExport, computePeaks, makeClickWav, fmt };
+           nudge, removeMembers, nearest, buildExport, computePeaks, makeClickWav, parseRef, matchTrack, fmt };
 })();
 if (typeof module !== "undefined") module.exports = BT;
 </script>
@@ -401,8 +456,63 @@ if (typeof module !== "undefined") module.exports = BT;
     $("pick").textContent = `🎵 ${file.name} · ${BT.fmt(S.duration, 1)}`; $("pick").classList.add("loaded");
     $("play").disabled = false; $("exportBtn").disabled = false;
     audio.currentTime = 0;
+    attachRef(S.lib && BT.matchTrack(S.lib.tracks, file.name, S.duration) || S.pendingRef);
+    S.pendingRef = null;
     update(); draw();
   }
+
+  // ---------- music library: auto beat grid / drops / reel windows as faint reference ticks ----------
+  S.lib = null; S.ref = null; S.pendingRef = null; S.showRef = localStorage.getItem("bt.showRef") !== "0";
+  try { const L = localStorage.getItem("bt.library"); if (L) S.lib = JSON.parse(L); } catch {}
+  const refKey = (t) => (t ? t.id || t.name : null);
+  const bpmTxt = (t) => (t.bpm ? `${Number(t.bpm).toFixed(1)} BPM` : "");
+  function attachRef(t) {
+    S.ref = t || null;
+    if (!S.ref) return renderLib();
+    const off = S.ref.duration && S.duration && Math.abs(S.ref.duration - S.duration) > 2;
+    toast(off ? `⚠️ Siatka „${S.ref.name}” ma inną długość (${BT.fmt(S.ref.duration, 0)}), sprawdź utwór` : `📚 Auto siatka: ${S.ref.name} · ${bpmTxt(S.ref)}`, 3500);
+    renderLib();
+  }
+  function renderLib() {
+    $("refState").textContent = S.showRef ? "ON" : "OFF"; $("refToggle").classList.toggle("on", S.showRef);
+    const list = $("libList"); list.innerHTML = "";
+    const tracks = S.lib ? S.lib.tracks : [];
+    tracks.forEach((t) => {
+      const b = document.createElement("button");
+      b.className = "trk" + (refKey(S.ref) === refKey(t) ? " cur" : "");
+      const w = t.windows && t.windows[0];
+      const wTxt = w ? ` · rolka #1 ${w.start.toFixed(1)}–${w.end.toFixed(1)} s${w.drop_rel != null ? ` (drop +${Number(w.drop_rel).toFixed(1)} s)` : ""}` : "";
+      b.textContent = t.name;
+      const sm = document.createElement("small");
+      sm.textContent = `${bpmTxt(t)}${t.duration ? " · " + BT.fmt(t.duration, 0) : ""} · ${t.beats.length} bitów · ${t.drops.length} dropów${wTxt}`;
+      b.appendChild(sm);
+      b.addEventListener("click", () => {
+        if (S.peaks) { attachRef(t); $("lib").classList.remove("open"); draw(); return; }
+        S.pendingRef = t; $("lib").classList.remove("open"); toast(`Wybierz plik: ${t.name}`, 3000); $("file").click();
+      });
+      list.appendChild(b);
+    });
+    $("libNow").textContent = !tracks.length ? "Brak wczytanej biblioteki." :
+      S.ref ? `Teraz: ${S.ref.name}${S.showRef ? "" : " (siatka ukryta)"}` : (S.peaks ? "Ten plik nie pasuje do żadnego utworu: dotknij utworu, żeby przypiąć siatkę ręcznie." : "Dotknij utworu, potem wybierz jego plik.");
+  }
+  $("libBtn").addEventListener("click", () => { renderLib(); $("lib").classList.add("open"); });
+  $("libClose").addEventListener("click", () => $("lib").classList.remove("open"));
+  $("refToggle").addEventListener("click", () => { S.showRef = !S.showRef; try { localStorage.setItem("bt.showRef", S.showRef ? "1" : "0"); } catch {} renderLib(); draw(); });
+  $("libLoad").addEventListener("click", () => $("libFile").click());
+  $("libFile").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const r = BT.parseRef(JSON.parse(await f.text()), f.name.replace(/\.(analysis|beats)?\.?json$/i, ""));
+      if (!r) throw new Error("brak bitów w pliku");
+      if (r.isLibrary || !S.lib) S.lib = { tracks: r.tracks };
+      else { const k = refKey(r.tracks[0]); S.lib = { tracks: [...S.lib.tracks.filter((t) => refKey(t) !== k), r.tracks[0]] }; }
+      try { localStorage.setItem("bt.library", JSON.stringify(S.lib)); } catch {}
+      if (S.peaks) attachRef(BT.matchTrack(S.lib.tracks, S.file.name, S.duration) || (!r.isLibrary ? r.tracks[0] : S.ref));
+      if (!S.ref || !S.peaks) toast(`Wczytano ${r.tracks.length} ${r.tracks.length === 1 ? "utwór" : "utwory"}`);
+    } catch (err) { toast("Nie mogę wczytać JSON: " + err.message, 3500); }
+    e.target.value = ""; renderLib(); update(); draw();
+  });
+  renderLib();
 
   // ---------- transport ----------
   function togglePlay() {
@@ -627,6 +737,33 @@ if (typeof module !== "undefined") module.exports = BT;
       g.fillRect(x, mid - hi * mid * 0.92, 1, Math.max(1, (hi - lo) * mid * 0.92));
     }
   }
+  // layer "bg" (under the waveform): reel-window bands; layer "fg" (over the waveform, under the taps): beat ticks + drops
+  function drawRef(g, w, h, t0, t1, detail, layer) {
+    const R = S.ref; if (!R || !S.showRef) return;
+    const X = (t) => ((t - t0) / (t1 - t0)) * w;
+    g.font = "800 11px Inter, Segoe UI, sans-serif";
+    if (layer === "bg") return R.windows.slice(0, 3).forEach((wn) => {
+      if (wn.end < t0 || wn.start > t1) return;
+      g.fillStyle = wn.rank === 1 ? "rgba(0,255,128,.10)" : "rgba(0,255,128,.05)";
+      g.fillRect(X(wn.start), 0, X(wn.end) - X(wn.start), h);
+      if (wn.start >= t0) { g.fillStyle = "rgba(0,255,128,.6)"; g.fillText(`#${wn.rank}`, X(wn.start) + 3, detail ? h - 26 : h - 4); }
+    });
+    if (detail) {
+      const db = new Set(R.downbeats.map((x) => Math.round(x * 1000)));
+      for (const b of R.beats) {
+        if (b < t0 || b > t1) continue;
+        const isD = db.has(Math.round(b * 1000));
+        g.fillStyle = isD ? "rgba(255,255,255,.32)" : "rgba(255,255,255,.15)";
+        g.fillRect(X(b) - (isD ? 1 : 0.5), 0, isD ? 2 : 1, h);
+      }
+    }
+    for (const d of R.drops) {
+      if (d < t0 || d > t1) continue;
+      g.fillStyle = "rgba(255,59,59,.4)";
+      for (let y = 0; y < h; y += 8) g.fillRect(X(d) - 1, y, 2, 4);
+      if (detail) g.fillText("auto drop", X(d) + 4, 28);
+    }
+  }
   function drawMarks(g, w, h, t0, t1, detail) {
     const X = (t) => ((t - t0) / (t1 - t0)) * w;
     const selKey = S.sel && S.sel.type === "beat" ? new Set(S.sel.members.map((m) => m.join(":"))) : null;
@@ -658,10 +795,10 @@ if (typeof module !== "undefined") module.exports = BT;
       g2.fillText("Dotknij kreski, by ją wybrać i przesunąć", 12, h2 / 2 + 16);
       return;
     }
-    drawWave(g1, w1, h1, 0, S.duration); drawMarks(g1, w1, h1, 0, S.duration, false);
+    drawRef(g1, w1, h1, 0, S.duration, false, "bg"); drawWave(g1, w1, h1, 0, S.duration); drawRef(g1, w1, h1, 0, S.duration, false, "fg"); drawMarks(g1, w1, h1, 0, S.duration, false);
     const [bef, aft] = view(), ct = audio.currentTime, t0 = ct - bef, t1 = ct + aft;
     g2.fillStyle = "#1c1c1c"; for (let s = Math.ceil(t0); s <= t1; s++) g2.fillRect(((s - t0) / (t1 - t0)) * w2, 0, 1, h2);
-    drawWave(g2, w2, h2, t0, t1); drawMarks(g2, w2, h2, t0, t1, true);
+    drawRef(g2, w2, h2, t0, t1, true, "bg"); drawWave(g2, w2, h2, t0, t1); drawRef(g2, w2, h2, t0, t1, true, "fg"); drawMarks(g2, w2, h2, t0, t1, true);
     $("time").innerHTML = `${BT.fmt(ct)}<span style="color:var(--muted)"> / ${BT.fmt(S.duration, 0)}</span>`;
   }
   function loop() { if (audio.paused) return; draw(); requestAnimationFrame(loop); }
@@ -713,7 +850,7 @@ if (typeof module !== "undefined") module.exports = BT;
     const cur = S.passes[S.passes.length - 1] || [];
     const live = BT.estimateBpm(cur.slice(-16)), all = beatClusters().map((c) => c.t), bpm = BT.estimateBpm(all);
     $("sLive").textContent = live ? live.toFixed(1) : "–";
-    $("sBpm").textContent = bpm ? bpm.toFixed(1) : "–";
+    $("sBpm").textContent = bpm ? bpm.toFixed(1) : S.ref && S.ref.bpm ? `≈${Number(S.ref.bpm).toFixed(1)}` : "–";
     $("sBeats").textContent = all.length;
     $("sPass").textContent = S.passes.length;
     $("sDrops").textContent = BT.mergeTaps(S.drops, 1.0).length;
