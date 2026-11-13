@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Beat Tapper · FPS.Center</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#121212">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  :root { --bg:#121212; --deep:#0B0B0B; --card:#1D1D1D; --card2:#161616; --line:#2A2A2A;
+          --green:#00FF80; --green2:#6EFF7F; --red:#FF3B3B; --muted:#8F8F8F; --text:#F2F2F2; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; background:var(--bg); color:var(--text); touch-action:manipulation;
+    font-family: Inter, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; -webkit-text-size-adjust:100%; }
+  body { min-height:100dvh; display:flex; flex-direction:column; gap:10px;
+         padding:max(12px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom)); max-width:1400px; margin:0 auto;
+         -webkit-user-select:none; user-select:none; }
+  header { display:flex; align-items:center; gap:10px; }
+  h1 { margin:0; font-size:22px; font-weight:900; letter-spacing:-.3px; text-transform:uppercase; white-space:nowrap; }
+  h1 span { color:var(--green); }
+  #pick { flex:1; min-width:0; text-align:left; font-size:15px; font-weight:700; color:var(--muted); background:var(--card2);
+          border:2px dashed var(--line); border-radius:14px; padding:10px 12px; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #pick.loaded { border-style:solid; color:var(--text); }
+  #pick.hover { border-color:var(--green); }
+  button { white-space:nowrap; font:inherit; font-size:17px; font-weight:800; color:var(--text); background:#262626; border:1px solid var(--line);
+           border-radius:14px; padding:10px 14px; cursor:pointer; touch-action:manipulation; }
+  button.on { background:var(--green); color:#0B0B0B; border-color:var(--green); }
+  button.primary { background:linear-gradient(90deg,var(--green2),var(--green)); color:#0B0B0B; border:0; }
+  button.danger { color:var(--red); }
+  button:disabled { opacity:.35; }
+  button:active { filter:brightness(1.3); }
+  .bar { display:flex; gap:8px; align-items:center; }
+  .bar > * { flex:1; min-width:0; }
+  .bar button { padding:10px 4px; }
+  #play { font-size:22px; }
+  .time { font-variant-numeric:tabular-nums; font-size:16px; font-weight:800; text-align:center; white-space:nowrap; flex:0 0 auto !important; }
+  canvas { width:100%; display:block; border-radius:12px; background:var(--deep); touch-action:none; }
+  #overview { height:48px; }
+  #detail { height:118px; }
+  #info { position:relative; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:6px 10px; }
+  .stat .k { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.4px; font-weight:800; }
+  .stat .v { font-size:22px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1.15; }
+  .stat .v.g { color:var(--green); } .stat .v.r { color:var(--red); }
+  #edit { display:none; position:absolute; inset:0; z-index:5; background:var(--card); border:1px solid var(--green); border-radius:14px; padding:6px; gap:6px; align-items:stretch; }
+  #edit button { padding:6px 8px; font-size:15px; }
+  #edit.open { display:flex; }
+  #edit .lbl { flex:1.5; font-size:13px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.25; align-self:center; padding-left:4px; }
+  #edit .nb { flex:1.2; } #edit .ib { flex:.7; }
+  #pad { flex:1 1 auto; min-height:34dvh; display:flex; gap:10px; }
+  #tap { flex:1; border-radius:28px; border:2px solid #2f2f2f; background:radial-gradient(ellipse at 50% 40%, #1f2a24, #151515 70%);
+         font-size:min(13vw, 64px); font-weight:900; letter-spacing:2px; color:var(--green); display:flex; flex-direction:column;
+         align-items:center; justify-content:center; touch-action:none; transition:background .06s, transform .06s; }
+  #tap small { font-size:15px; color:var(--muted); letter-spacing:0; font-weight:700; margin-top:6px; }
+  #tap.hit { background:var(--green); color:#0B0B0B; transform:scale(.985); }
+  #tap.hit small { color:#0B0B0B; }
+  #dropBtn { flex:0 0 26%; border-radius:28px; font-size:22px; font-weight:900; color:var(--red); background:#1a1515; border:2px solid #3a2222; touch-action:none; }
+  #dropBtn.hit { background:var(--red); color:#0B0B0B; }
+  .more { display:flex; gap:6px; }
+  .more > button { flex:1 1 auto; font-size:15px; padding:10px 8px; }
+  .more > button.primary { flex:2 1 auto; }
+  #help { color:#bdbdbd; font-size:14px; line-height:1.5; display:none; }
+  #help.open { display:block; }
+  kbd { display:inline-block; font:800 12px/1 Inter, "Segoe UI", sans-serif; color:var(--text); background:#2a2a2a;
+        border:1px solid #3a3a3a; border-bottom-width:2px; border-radius:6px; padding:3px 6px; }
+  #flash { position:fixed; inset:0; pointer-events:none; border:0 solid var(--green); z-index:50; }
+  #flash.hit { border-width:8px; } #flash.drop { border-color:var(--red); border-width:14px; }
+  #toast { position:fixed; left:50%; top:max(14px, env(safe-area-inset-top)); transform:translateX(-50%); background:#262626; border:1px solid var(--line);
+           padding:10px 18px; border-radius:999px; font-size:16px; font-weight:700; opacity:0; transition:opacity .25s;
+           pointer-events:none; z-index:60; max-width:92vw; text-align:center; }
+  #toast.show { opacity:1; }
+  .modal { position:fixed; inset:0; background:rgba(8,8,8,.96); z-index:40; display:none; flex-direction:column; gap:12px;
+           padding:max(18px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+  .modal.open { display:flex; }
+  .modal h2 { margin:0; font-size:24px; font-weight:900; text-transform:uppercase; }
+  .modal p { margin:0; color:#bdbdbd; font-size:16px; }
+  .dots { display:flex; gap:8px; flex-wrap:wrap; }
+  .dots { flex-wrap:nowrap; gap:5px; }
+  .dot { flex:1; max-width:30px; aspect-ratio:1; width:auto; height:auto; border-radius:50%; background:#2a2a2a; border:1px solid #3a3a3a; }
+  .dot.warm { background:#444; } .dot.now { outline:3px solid #fff; } .dot.ok { background:var(--green); border-color:var(--green); }
+  #calMsg { font-size:18px; font-weight:800; min-height:48px; }
+  #calTap { flex:1; }
+  textarea#out { width:100%; height:110px; background:var(--deep); color:#cfcfcf; border:1px solid var(--line); border-radius:12px;
+                 font:12px/1.4 ui-monospace, Consolas, monospace; padding:8px; display:none; -webkit-user-select:text; user-select:text; }
+  @media (min-width:900px) {
+    body { padding:20px 28px; gap:12px; }
+    h1 { font-size:28px; }
+    #overview { height:90px; } #detail { height:220px; }
+    #pad { min-height:170px; flex:0 0 190px; }
+    #tap { font-size:54px; }
+    .stats { grid-template-columns:repeat(6,1fr); }
+    .time { font-size:20px; }
+    #edit button { font-size:17px; } #edit .lbl { font-size:16px; }
+    .stat .v { font-size:30px; }
+  }
+  @media (max-width:899px) { .desk { display:none; } body { gap:8px; } }
+  @media (min-width:900px) { .mob { display:none; } #dropBtn .kbdh { display:block; font-size:13px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Beat <span>Tapper</span></h1>
+  <label id="pick" for="file">📂 Wybierz utwór…</label>
+  <input id="file" type="file" accept="audio/*,video/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" hidden>
+</header>
+
+<canvas id="overview"></canvas>
+<canvas id="detail"></canvas>
+
+<div class="bar">
+  <button id="b5">−5 s</button><button id="b1">−1 s</button>
+  <button id="play" class="primary" disabled>▶<span class="desk"> Play</span></button>
+  <button id="f1">+1 s</button><button id="f5">+5 s</button>
+</div>
+<div class="bar">
+  <div class="time" id="time">0:00.00</div>
+  <button class="spd on" data-r="1">1×</button><button class="spd" data-r="0.75">0.75×</button><button class="spd" data-r="0.5">0.5×</button>
+</div>
+
+<div id="info">
+<div id="edit">
+  <div class="lbl" id="selLbl">Bit</div>
+  <button id="nL" class="nb">◀ 10 ms</button><button id="nR" class="nb">10 ms ▶</button>
+  <button id="del" class="danger ib">🗑</button><button id="desel" class="ib">✕</button>
+</div>
+<div class="stats">
+  <div class="stat"><div class="k">BPM teraz</div><div class="v g" id="sLive">–</div></div>
+  <div class="stat"><div class="k">BPM całość</div><div class="v" id="sBpm">–</div></div>
+  <div class="stat"><div class="k">Bity</div><div class="v" id="sBeats">0</div></div>
+  <div class="stat"><div class="k">Przejście</div><div class="v" id="sPass">0</div></div>
+  <div class="stat desk"><div class="k">Dropy</div><div class="v r" id="sDrops">0</div></div>
+  <div class="stat desk"><div class="k">Opóźnienie</div><div class="v" id="sLat">0 ms</div></div>
+</div>
+</div>
+
+<div id="pad">
+  <button id="tap">TAP<small>stukaj w rytm<span class="desk"> · SPACJA</span></small></button>
+  <button id="dropBtn">DROP<small class="desk kbdh">D</small></button>
+</div>
+
+<div class="more">
+  <button id="exportBtn" class="primary" disabled>📤 Wyślij<span class="desk"> JSON</span></button>
+  <button id="calBtn">⏱<span class="desk"> Kalibracja</span> <span id="latShow">0 ms</span></button>
+  <button id="clickBtn">🔈<span class="desk"> Kliki:</span> <span id="clickState">OFF</span></button>
+  <button id="undoBtn">↶<span class="desk"> Cofnij</span></button>
+  <button id="clearBtn" class="danger">✕<span class="desk"> Wyczyść</span></button>
+  <button id="helpBtn">?</button>
+</div>
+<div id="help">
+  <b>Telefon:</b> Play → stukaj w duży przycisk TAP w rytm, DROP w momencie dropu. Przeciągnij falę, żeby przewijać.
+  Dotknij zielonej kreski, żeby ją wybrać → przesuń o 10 ms albo usuń. Kilka przejść tego samego fragmentu jest uśrednianych (60 ms).
+  Na koniec „Wyślij JSON” → Telegram.<br>
+  <b>Komputer:</b> <kbd>SPACJA</kbd> tap · <kbd>D</kbd> drop · <kbd>Backspace</kbd> cofnij · <kbd>R</kbd> wyczyść · <kbd>Enter</kbd> play/pauza ·
+  <kbd>←</kbd><kbd>→</kbd> 1 s (z Shift 5 s) albo przesuń wybrany bit o 10 ms · <kbd>Delete</kbd> usuń wybrany · <kbd>Esc</kbd> odznacz ·
+  <kbd>C</kbd> kliki · <kbd>E</kbd> eksport. Wybrane kreski można też przeciągać myszką.
+  <textarea id="out" readonly></textarea>
+</div>
+
+<div class="modal" id="cal">
+  <h2>Kalibracja opóźnienia</h2>
+  <p>Stukaj TAP równo z klikami. 4 niższe kliki = rozgrzewka, potem 8 do pomiaru. Zrób to na tym samym urządzeniu i słuchawkach co tapowanie (Bluetooth ma duże opóźnienie).</p>
+  <div class="dots" id="dots"></div>
+  <div id="calMsg">Naciśnij Start.</div>
+  <div class="bar"><button id="calStart" class="primary">Start</button><button id="latM">−5 ms</button><button id="latP">+5 ms</button><button id="latZ">0</button><button id="calClose">Zamknij</button></div>
+  <button id="calTap" class="tapLike" style="border-radius:28px;font-size:56px;font-weight:900;color:var(--green);background:#151515;border:2px solid #2f2f2f;touch-action:none">TAP</button>
+</div>
+
+<div id="flash"></div>
+<div id="toast"></div>
+
+<!-- ===== CORE: pure functions (node test: test_core.mjs extracts this block) ===== -->
+<script id="core">
+const BT = (() => {
+  const median = (a) => {
+    if (!a.length) return null;
+    const s = [...a].sort((x, y) => x - y), m = s.length >> 1;
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  };
+
+  /** Group taps of all passes: sort, a tap joins the cluster if within `win` s of the cluster's running mean.
+   *  passes = [[t,...],...]  ->  [{t: mean, members: [[passIdx, tapIdx], ...]}] */
+  function clusters(passes, win = 0.06) {
+    const items = [];
+    passes.forEach((p, pi) => p.forEach((t, ti) => Number.isFinite(t) && items.push({ t, pi, ti })));
+    items.sort((a, b) => a.t - b.t);
+    const out = [];
+    let cur = null;
+    for (const it of items) {
+      if (cur && it.t - cur.sum / cur.members.length <= win + 1e-9) { cur.sum += it.t; cur.members.push([it.pi, it.ti]); }
+      else { cur = { sum: it.t, members: [[it.pi, it.ti]] }; out.push(cur); }
+    }
+    return out.map((c) => ({ t: c.sum / c.members.length, members: c.members }));
+  }
+  const mergeTaps = (times, win = 0.06) => clusters([times], win).map((c) => c.t);
+
+  /** BPM from beat times: median inter-beat interval, ignoring skipped beats and double taps. */
+  function estimateBpm(times) {
+    const s = [...times].sort((a, b) => a - b);
+    const iv = [];
+    for (let i = 1; i < s.length; i++) { const d = s[i] - s[i - 1]; if (d > 0.2 && d < 2.0) iv.push(d); }
+    if (iv.length < 2) return null;
+    const m = median(iv);
+    const good = iv.filter((d) => d > 0.7 * m && d < 1.35 * m);
+    return 60 / median(good.length >= 2 ? good : iv);
+  }
+
+  /** Media-clock model. samples = [{p: performance.now() ms, m: media currentTime s}] taken while playing at `rate`.
+   *  currentTime is updated in steps (it can lag, never lead), so the freshest estimate of
+   *  offset = m - rate*p/1000 is the maximum over recent samples. Returns media time at perf time `pMs`. */
+  function songTimeAt(samples, pMs, rate = 1) {
+    if (!samples.length) return null;
+    let off = -Infinity;
+    for (const s of samples) off = Math.max(off, s.m - (rate * s.p) / 1000);
+    return off + (rate * pMs) / 1000;
+  }
+
+  /** Tap song time: media time at the touch/key event minus the latency (real ms -> media s scales with rate). */
+  function tapToSongTime(mediaTimeAtEvent, latencyMs, rate = 1) {
+    return Math.max(0, mediaTimeAtEvent - (latencyMs / 1000) * rate);
+  }
+
+  /** Calibration: nearest click per tap, keep |diff| < maxDev, median of the last `use` diffs. */
+  function calibrationOffset(clicks, taps, maxDev = 0.25, use = 8) {
+    const diffs = [];
+    for (const t of taps) {
+      let best = null;
+      for (const c of clicks) if (best === null || Math.abs(t - c) < Math.abs(best)) best = t - c;
+      if (best !== null && Math.abs(best) < maxDev) diffs.push(best);
+    }
+    const d = diffs.slice(-use);
+    if (d.length < 5) return null;
+    const med = median(d);
+    return { offset_ms: Math.round(med * 1000), spread_ms: Math.round(median(d.map((x) => Math.abs(x - med))) * 1000), n: d.length };
+  }
+
+  /** Add a tap; a new pass starts when the tap is earlier than the last tap of the current pass. Returns [pi, ti]. */
+  function addTap(passes, t) {
+    let cur = passes[passes.length - 1];
+    if (!cur || (cur.length && t < cur[cur.length - 1] - 0.05)) { cur = []; passes.push(cur); }
+    cur.push(t);
+    return [passes.length - 1, cur.length - 1];
+  }
+
+  /** Move all member taps by `delta` s (keeps each pass sorted). */
+  function nudge(passes, members, delta) {
+    for (const [pi, ti] of members) passes[pi][ti] = Math.max(0, passes[pi][ti] + delta);
+    passes.forEach((p) => p.sort((a, b) => a - b));
+  }
+  /** Delete member taps; returns passes without empty ones. */
+  function removeMembers(passes, members) {
+    const kill = new Set(members.map(([pi, ti]) => pi + ":" + ti));
+    return passes.map((p, pi) => p.filter((_, ti) => !kill.has(pi + ":" + ti))).filter((p) => p.length);
+  }
+  /** Index of the item in `times` nearest to t within tol, or -1. */
+  function nearest(times, t, tol) {
+    let bi = -1, bd = tol;
+    times.forEach((x, i) => { const d = Math.abs(x - t); if (d <= bd) { bd = d; bi = i; } });
+    return bi;
+  }
+
+  const r3 = (x) => Math.round(x * 1000) / 1000;
+  function buildExport({ file, duration, passes, drops, latency_ms }) {
+    const beats = clusters(passes, 0.06).map((c) => c.t);
+    const bpm = estimateBpm(beats);
+    return {
+      file, duration: r3(duration), bpm: bpm ? Math.round(bpm * 100) / 100 : null, latency_ms,
+      beats: beats.map(r3), drops: mergeTaps(drops, 1.0).map(r3),
+      passes: passes.length, taps_raw: passes.map((p) => p.map(r3)),
+      created: new Date().toISOString(), tool: "fps.center beat-tapper v2",
+    };
+  }
+
+  /** Min/max envelope of mono samples into `buckets` bins. */
+  function computePeaks(data, buckets) {
+    const mins = new Float32Array(buckets), maxs = new Float32Array(buckets), step = data.length / buckets;
+    for (let b = 0; b < buckets; b++) {
+      const a = Math.floor(b * step), e = Math.max(a + 1, Math.floor((b + 1) * step));
+      let lo = 1, hi = -1;
+      for (let i = a; i < e && i < data.length; i++) { const v = data[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+      if (lo > hi) { lo = 0; hi = 0; }
+      mins[b] = lo; maxs[b] = hi;
+    }
+    return { mins, maxs };
+  }
+
+  /** 16-bit mono WAV with short clicks at `clicks` (first `warm` lower-pitched). */
+  function makeClickWav(clicks, total, sr = 44100, warm = 4) {
+    const n = Math.ceil(total * sr), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    w(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); w(8, "WAVE"); w(12, "fmt ");
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    w(36, "data"); v.setUint32(40, n * 2, true);
+    const len = Math.floor(0.03 * sr);
+    clicks.forEach((c, k) => {
+      const s0 = Math.round(c * sr), f = k < warm ? 1000 : 1600;
+      for (let i = 0; i < len && s0 + i < n; i++)
+        v.setInt16(44 + (s0 + i) * 2, Math.round(0.8 * Math.sin(2 * Math.PI * f * i / sr) * Math.exp(-i / (0.006 * sr)) * 32767), true);
+    });
+    return buf;
+  }
+
+  const fmt = (s, dec = 2) => {
+    if (!Number.isFinite(s) || s < 0) s = 0;
+    const m = Math.floor(s / 60), r = s - m * 60;
+    return `${m}:${r.toFixed(dec).padStart(dec ? dec + 3 : 2, "0")}`;
+  };
+
+  return { median, clusters, mergeTaps, estimateBpm, songTimeAt, tapToSongTime, calibrationOffset, addTap,
+           nudge, removeMembers, nearest, buildExport, computePeaks, makeClickWav, fmt };
+})();
+if (typeof module !== "undefined") module.exports = BT;
+</script>
+
+<!-- ===== UI ===== -->
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const isTouch = matchMedia("(pointer: coarse)").matches;
+  const audio = new Audio();
+  audio.preload = "auto"; audio.playsInline = true;
+  audio.preservesPitch = true; audio.mozPreservesPitch = true; audio.webkitPreservesPitch = true;
+  let actx = null;
+  const ctx = () => (actx ||= new (window.AudioContext || window.webkitAudioContext)());
+
+  const S = {
+    file: null, fileKey: null, duration: 0, peaks: null, pps: 200,
+    passes: [], drops: [], history: [], rate: 1, clicks: false, sel: null,
+    latency: Number(localStorage.getItem("bt.latency_ms") || 0),
+  };
+  window.__bt = { S, audio, BT };
+
+  // ---------- media clock: map event.timeStamp (performance clock) -> media time ----------
+  function makeClock(el) {
+    const c = { samples: [] };
+    c.reset = () => (c.samples = []);
+    c.sample = () => {
+      if (el.paused) return;
+      const p = performance.now();
+      c.samples.push({ p, m: el.currentTime });
+      while (c.samples.length && p - c.samples[0].p > 1200) c.samples.shift();
+    };
+    c.at = (evTs) => {
+      let p = evTs;
+      const now = performance.now();
+      if (!Number.isFinite(p) || p <= 0 || Math.abs(now - p) > 1000) p = now; // old Safari: epoch timestamps
+      c.sample();
+      const r = el.playbackRate || 1;
+      const t = c.samples.length >= 3 ? BT.songTimeAt(c.samples, p, r) : el.currentTime - ((now - p) / 1000) * r;
+      return Math.min(Math.max(0, t), el.duration || Infinity);
+    };
+    ["play", "playing", "seeking", "seeked", "ratechange", "pause", "waiting"].forEach((ev) => el.addEventListener(ev, c.reset));
+    setInterval(c.sample, 8);
+    return c;
+  }
+  const clock = makeClock(audio);
+
+  // ---------- helpers ----------
+  let toastT;
+  function toast(msg, ms = 2200) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), ms); }
+  function flash(kind, btn) {
+    const f = $("flash"); f.className = kind; setTimeout(() => (f.className = ""), kind === "drop" ? 150 : 70);
+    if (btn) { btn.classList.add("hit"); setTimeout(() => btn.classList.remove("hit"), 90); }
+    if (navigator.vibrate) try { navigator.vibrate(kind === "drop" ? 30 : 10); } catch {}
+  }
+  const snapshot = () => JSON.stringify({ passes: S.passes, drops: S.drops });
+  function remember() { S.history.push(snapshot()); if (S.history.length > 300) S.history.shift(); }
+  function save() { if (S.fileKey) try { localStorage.setItem(S.fileKey, snapshot()); } catch {} }
+  const beatClusters = () => BT.clusters(S.passes, 0.06);
+  const changed = () => { save(); update(); draw(); };
+
+  // ---------- file loading ----------
+  $("file").addEventListener("change", (e) => e.target.files[0] && loadFile(e.target.files[0]));
+  ["dragenter", "dragover"].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); $("pick").classList.add("hover"); }));
+  ["dragleave", "drop"].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); $("pick").classList.remove("hover"); }));
+  document.addEventListener("drop", (e) => { const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) loadFile(f); });
+
+  async function loadFile(file) {
+    audio.pause();
+    S.file = file; S.fileKey = `bt.session.${file.name}.${file.size}`;
+    $("pick").textContent = `⏳ ${file.name}`;
+    audio.src = URL.createObjectURL(file);
+    audio.playbackRate = S.rate;
+    try {
+      const buf = await file.arrayBuffer();
+      const ab = await new Promise((res, rej) => { const p = ctx().decodeAudioData(buf, res, rej); if (p && p.then) p.then(res, rej); });
+      const n = ab.length, mono = new Float32Array(n), ch = ab.numberOfChannels;
+      for (let c = 0; c < ch; c++) { const d = ab.getChannelData(c); for (let i = 0; i < n; i++) mono[i] += d[i] / ch; }
+      S.duration = ab.duration;
+      S.peaks = BT.computePeaks(mono, Math.max(1, Math.round(ab.duration * S.pps)));
+    } catch (err) {
+      console.error(err); $("pick").textContent = `⚠️ ${file.name}: nie da się zdekodować (mp3/m4a/wav)`; return;
+    }
+    S.passes = []; S.drops = []; S.history = []; S.sel = null;
+    const prev = localStorage.getItem(S.fileKey);
+    if (prev) try {
+      const p = JSON.parse(prev); S.passes = p.passes || []; S.drops = p.drops || [];
+      const n = S.passes.flat().length; if (n || S.drops.length) toast(`Przywrócono ${n} tapów z poprzedniej sesji`, 3500);
+    } catch {}
+    $("pick").textContent = `🎵 ${file.name} · ${BT.fmt(S.duration, 1)}`; $("pick").classList.add("loaded");
+    $("play").disabled = false; $("exportBtn").disabled = false;
+    audio.currentTime = 0;
+    update(); draw();
+  }
+
+  // ---------- transport ----------
+  function togglePlay() {
+    if (!S.peaks) return toast("Najpierw wybierz utwór");
+    if (audio.paused) { try { ctx().resume(); } catch {} audio.play().catch((e) => toast("Nie mogę odtworzyć: " + e.message)); }
+    else audio.pause();
+  }
+  $("play").addEventListener("click", togglePlay);
+  audio.addEventListener("play", () => { $("play").innerHTML = '⏸<span class="desk"> Pauza</span>'; loop(); });
+  audio.addEventListener("pause", () => { $("play").innerHTML = '▶<span class="desk"> Play</span>'; draw(); });
+  function seek(t) { if (!S.peaks) return; audio.currentTime = Math.min(Math.max(0, t), S.duration); schedNext = 0; draw(); }
+  [["b5", -5], ["b1", -1], ["f1", 1], ["f5", 5]].forEach(([id, d]) => $(id).addEventListener("click", () => seek(audio.currentTime + d)));
+  document.querySelectorAll(".spd").forEach((b) => b.addEventListener("click", () => {
+    S.rate = Number(b.dataset.r); audio.playbackRate = S.rate;
+    document.querySelectorAll(".spd").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+  function toggleClicks() { S.clicks = !S.clicks; $("clickState").textContent = S.clicks ? "ON" : "OFF"; $("clickBtn").classList.toggle("on", S.clicks); schedNext = 0; try { ctx().resume(); } catch {} }
+  $("clickBtn").addEventListener("click", toggleClicks);
+  $("helpBtn").addEventListener("click", () => $("help").classList.toggle("open"));
+
+  // ---------- tapping ----------
+  function tap(evTs) {
+    if (!S.peaks) return toast("Najpierw wybierz utwór");
+    if (audio.paused) return toast("Najpierw ▶ Play, potem stukaj w trakcie");
+    const t = BT.tapToSongTime(clock.at(evTs), S.latency, S.rate);
+    remember(); BT.addTap(S.passes, t);
+    flash("hit", $("tap")); changed();
+  }
+  function markDrop(evTs) {
+    if (!S.peaks) return;
+    const t = audio.paused ? audio.currentTime : BT.tapToSongTime(clock.at(evTs), S.latency, S.rate);
+    remember(); S.drops.push(t);
+    flash("drop", $("dropBtn")); toast(`DROP @ ${BT.fmt(t)}`); changed();
+  }
+  function undo() {
+    const h = S.history.pop();
+    if (!h) return toast("Nie ma czego cofnąć");
+    const p = JSON.parse(h); S.passes = p.passes; S.drops = p.drops; S.sel = null; selUI(); changed(); toast("Cofnięto");
+  }
+  function clearAll() {
+    if (!S.passes.flat().length && !S.drops.length) return;
+    if (!confirm("Wyczyścić wszystkie tapy i dropy tego utworu?")) return;
+    remember(); S.passes = []; S.drops = []; S.sel = null; selUI(); changed(); toast("Wyczyszczono (Cofnij przywraca)");
+  }
+  // pointerdown = fires on touch start, no 300 ms click delay; preventDefault stops the emulated mouse/click/zoom
+  function bindPad(el, fn) {
+    el.addEventListener("pointerdown", (e) => { e.preventDefault(); if (e.button > 0) return; fn(e.timeStamp); });
+    el.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+  }
+  bindPad($("tap"), tap);
+  bindPad($("dropBtn"), markDrop);
+  $("undoBtn").addEventListener("click", undo);
+  $("clearBtn").addEventListener("click", clearAll);
+  document.addEventListener("dblclick", (e) => e.preventDefault(), { passive: false });
+  document.addEventListener("gesturestart", (e) => e.preventDefault());
+
+  // ---------- selection / editing ----------
+  function selected() {
+    if (!S.sel) return null;
+    if (S.sel.type === "drop") return S.sel.idx < S.drops.length ? { t: S.drops[S.sel.idx] } : null;
+    return S.sel.members.length ? { t: S.passes[S.sel.members[0][0]]?.[S.sel.members[0][1]] } : null;
+  }
+  function selUI() {
+    const s = selected();
+    $("edit").classList.toggle("open", !!s);
+    if (s) {
+      const n = S.sel.type === "drop" ? "DROP" : S.sel.members.length > 1 ? `Bit (${S.sel.members.length} tapy)` : "Bit";
+      const t = S.sel.type === "drop" ? s.t : beatTimeOfSel();
+      $("selLbl").innerHTML = `${n}<br>${BT.fmt(t, 3)}`;
+    }
+  }
+  function beatTimeOfSel() { const ts = S.sel.members.map(([pi, ti]) => S.passes[pi][ti]); return ts.reduce((a, b) => a + b, 0) / ts.length; }
+  function selectAt(t, tolS) {
+    const di = BT.nearest(S.drops, t, tolS);
+    const cl = beatClusters(), bi = BT.nearest(cl.map((c) => c.t), t, tolS);
+    if (di >= 0 && (bi < 0 || Math.abs(S.drops[di] - t) <= Math.abs(cl[bi].t - t))) S.sel = { type: "drop", idx: di };
+    else if (bi >= 0) S.sel = { type: "beat", members: cl[bi].members.map((m) => m.slice()) };
+    else S.sel = null;
+    selUI(); draw(); return !!S.sel;
+  }
+  // members store [pi, ti]; nudge re-sorts each pass, so re-find the moved taps by value afterwards
+  function moveSel(delta, record = true) {
+    if (!S.sel) return;
+    if (record) remember();
+    if (S.sel.type === "drop") S.drops[S.sel.idx] = Math.max(0, S.drops[S.sel.idx] + delta);
+    else {
+      const vals = S.sel.members.map(([pi, ti]) => [pi, S.passes[pi][ti] + delta]);
+      BT.nudge(S.passes, S.sel.members, delta);
+      S.sel.members = vals.map(([pi, v]) => [pi, S.passes[pi].findIndex((x) => Math.abs(x - Math.max(0, v)) < 1e-9)]);
+    }
+    selUI(); changed();
+  }
+  function deleteSel() {
+    if (!S.sel) return;
+    remember();
+    if (S.sel.type === "drop") S.drops.splice(S.sel.idx, 1);
+    else S.passes = BT.removeMembers(S.passes, S.sel.members);
+    S.sel = null; selUI(); changed(); toast("Usunięto");
+  }
+  $("nL").addEventListener("click", () => moveSel(-0.01));
+  $("nR").addEventListener("click", () => moveSel(0.01));
+  $("del").addEventListener("click", deleteSel);
+  $("desel").addEventListener("click", () => { S.sel = null; selUI(); draw(); });
+
+  // ---------- export / share ----------
+  function exportData() { return BT.buildExport({ file: S.file.name, duration: S.duration, passes: S.passes, drops: S.drops, latency_ms: S.latency }); }
+  async function doExport() {
+    if (!S.file) return;
+    const data = exportData(), txt = JSON.stringify(data);
+    const name = S.file.name.replace(/\.[^.]+$/, "") + ".beats.json";
+    $("out").value = txt;
+    if (isTouch && navigator.share) {
+      try {
+        const f = new File([txt], name, { type: "application/json" });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: name });
+        else await navigator.share({ title: name, text: txt });
+        return toast("Udostępniono ✔");
+      } catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([txt], { type: "application/json" })); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    let copied = false;
+    try { await navigator.clipboard.writeText(txt); copied = true; } catch {
+      const ta = $("out"); $("help").classList.add("open"); ta.style.display = "block"; ta.select();
+      try { copied = document.execCommand("copy"); } catch {}
+    }
+    toast(copied ? `Pobrano ${name} + skopiowano do schowka` : `Pobrano ${name}`, 3500);
+  }
+  $("exportBtn").addEventListener("click", doExport);
+
+  // ---------- keyboard (desktop) ----------
+  window.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+    const k = e.code;
+    if (k === "Space") { e.preventDefault(); if (e.repeat) return; return calib.active ? calibTap(e.timeStamp) : tap(e.timeStamp); }
+    if (e.repeat && !(k === "ArrowLeft" || k === "ArrowRight")) return;
+    if (k === "KeyD") return markDrop(e.timeStamp);
+    if (k === "Backspace") { e.preventDefault(); return undo(); }
+    if (k === "Delete") return deleteSel();
+    if (k === "Escape") { S.sel = null; selUI(); draw(); return; }
+    if (k === "KeyR" && !e.ctrlKey && !e.metaKey) return clearAll();
+    if (k === "Enter") { e.preventDefault(); return togglePlay(); }
+    if (k === "ArrowLeft" || k === "ArrowRight") {
+      e.preventDefault(); const dir = k === "ArrowLeft" ? -1 : 1;
+      return S.sel ? moveSel(dir * (e.altKey ? 0.001 : 0.01)) : seek(audio.currentTime + dir * (e.shiftKey ? 5 : 1));
+    }
+    if (k === "KeyC") return toggleClicks();
+    if (k === "KeyE") return doExport();
+  }, true);
+  window.addEventListener("keyup", (e) => { if (e.code === "Space") e.preventDefault(); }, true);
+  document.querySelectorAll("button").forEach((b) => b.addEventListener("keydown", (e) => { if (e.code === "Space" || e.code === "Enter") e.preventDefault(); }));
+
+  // ---------- calibration (same <audio> path + same clock as the song) ----------
+  const CAL_BPM = 100, CAL_N = 12, CAL_LEAD = 1.0, WARM = 4;
+  const calClicks = Array.from({ length: CAL_N }, (_, i) => CAL_LEAD + (i * 60) / CAL_BPM);
+  const calAudio = new Audio(); calAudio.playsInline = true;
+  calAudio.src = URL.createObjectURL(new Blob([BT.makeClickWav(calClicks, CAL_LEAD + (CAL_N * 60) / CAL_BPM + 0.6, 44100, WARM)], { type: "audio/wav" }));
+  const calClock = makeClock(calAudio);
+  const calib = { active: false, taps: [] };
+  $("dots").innerHTML = calClicks.map((_, i) => `<div class="dot${i < WARM ? " warm" : ""}"></div>`).join("");
+  const dots = () => document.querySelectorAll(".dot");
+  $("calBtn").addEventListener("click", () => { audio.pause(); $("cal").classList.add("open"); });
+  $("calClose").addEventListener("click", () => { $("cal").classList.remove("open"); calib.active = false; calAudio.pause(); });
+  $("calStart").addEventListener("click", () => {
+    calib.taps = []; calib.active = true;
+    dots().forEach((d) => d.classList.remove("ok", "now"));
+    $("calMsg").textContent = "Słuchaj… 4 niższe kliki, potem stukaj równo z wysokimi.";
+    calAudio.currentTime = 0; calAudio.play().catch((e) => ($("calMsg").textContent = "Błąd audio: " + e.message));
+    (function tick() { if (!calib.active) return; const t = calAudio.currentTime;
+      dots().forEach((d, i) => d.classList.toggle("now", Math.abs(t - calClicks[i]) < 0.1)); requestAnimationFrame(tick); })();
+  });
+  function calibTap(evTs) {
+    if (!calib.active || calAudio.paused) return;
+    const t = calClock.at(evTs); calib.taps.push(t); flash("hit", $("calTap"));
+    const bi = BT.nearest(calClicks, t, 0.3); if (bi >= WARM) dots()[bi].classList.add("ok");
+  }
+  bindPad($("calTap"), calibTap);
+  calAudio.addEventListener("ended", () => {
+    calib.active = false; dots().forEach((d) => d.classList.remove("now"));
+    const r = BT.calibrationOffset(calClicks.slice(WARM), calib.taps, 0.25, 8);
+    if (!r) { $("calMsg").textContent = "Za mało trafień (min. 5 z 8). Spróbuj jeszcze raz."; return; }
+    setLatency(r.offset_ms);
+    $("calMsg").innerHTML = `Opóźnienie: <span style="color:var(--green)">${r.offset_ms} ms</span> (rozrzut ±${r.spread_ms} ms). Zapisane ✔`;
+  });
+  function setLatency(ms) { S.latency = Math.round(ms); try { localStorage.setItem("bt.latency_ms", String(S.latency)); } catch {} update(); }
+  $("latM").addEventListener("click", () => setLatency(S.latency - 5));
+  $("latP").addEventListener("click", () => setLatency(S.latency + 5));
+  $("latZ").addEventListener("click", () => setLatency(0));
+
+  // ---------- beat clicks during playback (check by ear) ----------
+  let schedNext = 0;
+  function scheduleClicks() {
+    if (!S.clicks || audio.paused || !actx) return;
+    const c = actx, ct = clock.at(performance.now()), ahead = 0.15 * S.rate;
+    for (const { t: b } of beatClusters()) {
+      if (b <= ct || b > ct + ahead || b < schedNext) continue;
+      const o = c.createOscillator(), g = c.createGain(), when = c.currentTime + (b - ct) / S.rate;
+      o.frequency.value = 1500; g.gain.setValueAtTime(0.5, when); g.gain.exponentialRampToValueAtTime(0.001, when + 0.04);
+      o.connect(g).connect(c.destination); o.start(when); o.stop(when + 0.05);
+      schedNext = b + 1e-4;
+    }
+  }
+  setInterval(scheduleClicks, 25);
+
+  // ---------- drawing ----------
+  const PASS_COL = ["#4DA3FF", "#FFB84D", "#C77DFF", "#4DFFF3", "#FF7DB8", "#B8FF4D"];
+  const view = () => (innerWidth < 900 ? [2, 4] : [3, 5]); // seconds before / after the playhead in the zoom view
+  function sizeCanvas(cv) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); return [g, w, h];
+  }
+  function drawWave(g, w, h, t0, t1) {
+    const P = S.peaks, mid = h / 2;
+    g.fillStyle = "#3d3d3d";
+    for (let x = 0; x < w; x++) {
+      const a = Math.floor((t0 + (x / w) * (t1 - t0)) * S.pps), b = Math.max(a + 1, Math.floor((t0 + ((x + 1) / w) * (t1 - t0)) * S.pps));
+      let lo = 0, hi = 0;
+      for (let i = Math.max(0, a); i < b && i < P.maxs.length; i++) { if (P.mins[i] < lo) lo = P.mins[i]; if (P.maxs[i] > hi) hi = P.maxs[i]; }
+      g.fillRect(x, mid - hi * mid * 0.92, 1, Math.max(1, (hi - lo) * mid * 0.92));
+    }
+  }
+  function drawMarks(g, w, h, t0, t1, detail) {
+    const X = (t) => ((t - t0) / (t1 - t0)) * w;
+    const selKey = S.sel && S.sel.type === "beat" ? new Set(S.sel.members.map((m) => m.join(":"))) : null;
+    if (detail) S.passes.forEach((p, i) => {
+      g.fillStyle = PASS_COL[i % PASS_COL.length];
+      for (const t of p) if (t >= t0 && t <= t1) g.fillRect(X(t) - 1, h - 20, 2, 16);
+    });
+    for (const c of beatClusters()) {
+      if (c.t < t0 || c.t > t1) continue;
+      const isSel = selKey && c.members.some((m) => selKey.has(m.join(":")));
+      g.fillStyle = isSel ? "#FFFFFF" : "rgba(0,255,128,.9)";
+      const wdt = detail ? (isSel ? 4 : 2) : 1;
+      g.fillRect(X(c.t) - wdt / 2, detail ? 4 : 0, wdt, detail ? h - 28 : h);
+      if (isSel && detail) { g.beginPath(); g.arc(X(c.t), 10, 7, 0, 7); g.fill(); }
+    }
+    S.drops.forEach((t, i) => {
+      if (t < t0 || t > t1) return;
+      const isSel = S.sel && S.sel.type === "drop" && S.sel.idx === i;
+      g.fillStyle = isSel ? "#fff" : "#FF3B3B"; g.fillRect(X(t) - 2, 0, 4, h);
+      g.font = "900 13px Inter, Segoe UI, sans-serif"; g.fillText("DROP", X(t) + 5, 14);
+    });
+    g.fillStyle = "#fff"; g.globalAlpha = 0.9; g.fillRect(X(audio.currentTime) - 1, 0, 2, h); g.globalAlpha = 1;
+  }
+  function draw() {
+    const [g1, w1, h1] = sizeCanvas($("overview")), [g2, w2, h2] = sizeCanvas($("detail"));
+    if (!S.peaks) {
+      g1.fillStyle = "#555"; g1.font = "700 15px Inter, Segoe UI, sans-serif"; g1.fillText("Cały utwór (dotknij, by przeskoczyć)", 12, h1 / 2 + 5);
+      g2.fillStyle = "#555"; g2.font = "700 15px Inter, Segoe UI, sans-serif"; g2.fillText("Zbliżenie: przeciągnij, by przewijać", 12, h2 / 2 - 6);
+      g2.fillText("Dotknij kreski, by ją wybrać i przesunąć", 12, h2 / 2 + 16);
+      return;
+    }
+    drawWave(g1, w1, h1, 0, S.duration); drawMarks(g1, w1, h1, 0, S.duration, false);
+    const [bef, aft] = view(), ct = audio.currentTime, t0 = ct - bef, t1 = ct + aft;
+    g2.fillStyle = "#1c1c1c"; for (let s = Math.ceil(t0); s <= t1; s++) g2.fillRect(((s - t0) / (t1 - t0)) * w2, 0, 1, h2);
+    drawWave(g2, w2, h2, t0, t1); drawMarks(g2, w2, h2, t0, t1, true);
+    $("time").innerHTML = `${BT.fmt(ct)}<span style="color:var(--muted)"> / ${BT.fmt(S.duration, 0)}</span>`;
+  }
+  function loop() { if (audio.paused) return; draw(); requestAnimationFrame(loop); }
+  window.addEventListener("resize", draw);
+
+  // overview: tap / drag = jump
+  (() => {
+    const cv = $("overview"); let down = false;
+    const go = (e) => { const r = cv.getBoundingClientRect(); seek(((e.clientX - r.left) / r.width) * S.duration); };
+    cv.addEventListener("pointerdown", (e) => { if (!S.peaks) return; down = true; cv.setPointerCapture(e.pointerId); go(e); });
+    cv.addEventListener("pointermove", (e) => down && go(e));
+    cv.addEventListener("pointerup", () => (down = false));
+    cv.addEventListener("pointercancel", () => (down = false));
+  })();
+  // detail: tap on a marker = select; drag a selected marker (mouse) = move it; drag elsewhere = scrub; tap empty = deselect
+  (() => {
+    const cv = $("detail"); let st = null;
+    const secPerPx = () => { const [b, a] = view(); return (b + a) / cv.getBoundingClientRect().width; };
+    const timeAtX = (x) => { const r = cv.getBoundingClientRect(), [b, a] = view(); return audio.currentTime - b + ((x - r.left) / r.width) * (b + a); };
+    cv.addEventListener("pointerdown", (e) => {
+      if (!S.peaks) return; cv.setPointerCapture(e.pointerId);
+      const tol = (e.pointerType === "touch" ? 22 : 8) * secPerPx(), t = timeAtX(e.clientX);
+      let mode = "scrub";
+      if (e.pointerType === "mouse" && S.sel) {
+        const s = S.sel.type === "drop" ? S.drops[S.sel.idx] : beatTimeOfSel();
+        if (Math.abs(s - t) <= tol) mode = "drag";
+      }
+      st = { x0: e.clientX, x: e.clientX, ct0: audio.currentTime, mode, moved: false, t, tol, type: e.pointerType, rec: false };
+    });
+    cv.addEventListener("pointermove", (e) => {
+      if (!st) return;
+      if (Math.abs(e.clientX - st.x0) > 6) st.moved = true;
+      if (!st.moved) return;
+      if (st.mode === "drag") {
+        if (!st.rec) { remember(); st.rec = true; }
+        moveSel((e.clientX - st.x) * secPerPx(), false); st.x = e.clientX;
+      } else seek(st.ct0 - (e.clientX - st.x0) * secPerPx());
+    });
+    const end = () => {
+      if (st && !st.moved) { if (!selectAt(st.t, st.tol)) { S.sel = null; selUI(); draw(); } }
+      st = null;
+    };
+    cv.addEventListener("pointerup", end);
+    cv.addEventListener("pointercancel", () => (st = null));
+  })();
+
+  // ---------- stats ----------
+  function update() {
+    const cur = S.passes[S.passes.length - 1] || [];
+    const live = BT.estimateBpm(cur.slice(-16)), all = beatClusters().map((c) => c.t), bpm = BT.estimateBpm(all);
+    $("sLive").textContent = live ? live.toFixed(1) : "–";
+    $("sBpm").textContent = bpm ? bpm.toFixed(1) : "–";
+    $("sBeats").textContent = all.length;
+    $("sPass").textContent = S.passes.length;
+    $("sDrops").textContent = BT.mergeTaps(S.drops, 1.0).length;
+    $("sLat").textContent = `${S.latency} ms`; $("latShow").textContent = `${S.latency} ms`;
+    if (audio.paused) draw();
+  }
+  update(); draw();
+})();
+</script>
+</body>
+</html>
