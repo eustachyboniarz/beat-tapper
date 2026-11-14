@@ -56,14 +56,14 @@
   #edit.open { display:flex; }
   #edit .lbl { flex:1.5; font-size:13px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.25; align-self:center; padding-left:4px; }
   #edit .nb { flex:1.2; } #edit .ib { flex:.7; }
-  #pad { flex:1 1 auto; min-height:34dvh; display:flex; gap:10px; }
+  #pad { flex:1 1 auto; min-height:30dvh; display:flex; gap:10px; }
   #tap { flex:1; border-radius:28px; border:2px solid #2f2f2f; background:radial-gradient(ellipse at 50% 40%, #1f2a24, #151515 70%);
          font-size:min(13vw, 64px); font-weight:900; letter-spacing:2px; color:var(--green); display:flex; flex-direction:column;
          align-items:center; justify-content:center; touch-action:none; transition:background .06s, transform .06s; }
   #tap small { font-size:15px; color:var(--muted); letter-spacing:0; font-weight:700; margin-top:6px; }
   #tap.hit { background:var(--green); color:#0B0B0B; transform:scale(.985); }
   #tap.hit small { color:#0B0B0B; }
-  #dropBtn { flex:0 0 26%; border-radius:28px; font-size:22px; font-weight:900; color:var(--red); background:#1a1515; border:2px solid #3a2222; touch-action:none; }
+  #dropBtn { flex:1; border-radius:28px; font-size:22px; font-weight:900; color:var(--red); background:#1a1515; border:2px solid #3a2222; touch-action:none; }
   #dropBtn.hit { background:var(--red); color:#0B0B0B; }
   .more { display:flex; gap:6px; }
   .more > button { flex:1 1 auto; font-size:15px; padding:10px 8px; }
@@ -96,6 +96,25 @@
   .trk small { display:block; color:var(--muted); font-size:13px; font-weight:700; margin-top:3px; }
   textarea#out { width:100%; height:110px; background:var(--deep); color:#cfcfcf; border:1px solid var(--line); border-radius:12px;
                  font:12px/1.4 ui-monospace, Consolas, monospace; padding:8px; display:none; -webkit-user-select:text; user-select:text; }
+  :root { --strong:#FF4FA3; }
+  #passRow .seg { flex:3 !important; }
+  #passRow .seg button { font-size:15px; }
+  #pAcc.on { background:var(--green); border-color:var(--green); color:#0B0B0B; }
+  #pStr.on { background:var(--strong); border-color:var(--strong); color:#0B0B0B; }
+  #winBtn { flex:1.1; font-size:13px; padding:10px 2px; }
+  #winBtn small { display:block; font-size:10px; color:var(--muted); font-weight:700; }
+  #strBtn { flex:0 0 26%; border-radius:28px; font-size:18px; font-weight:900; color:var(--strong); background:#1c1218; border:2px solid #4a2238; touch-action:none; }
+  #strBtn.hit { background:var(--strong); color:#0B0B0B; }
+  #side { flex:0 0 26%; display:flex; flex-direction:column; gap:10px; }
+  #side > button { flex:1; min-height:0; }
+  body.strongPass #tap { color:var(--strong); border-color:#6b2a4c; background:radial-gradient(ellipse at 50% 40%, #33182a, #161015 70%); }
+  body.strongPass #tap.hit { background:var(--strong); color:#0B0B0B; }
+  body.strongPass #strBtn { display:none; }
+  body.strongPass #flash.hit { border-color:var(--strong); }
+  #lvl { flex:1.3; font-size:14px !important; padding:6px 4px !important; }
+  #sLive { white-space:nowrap; }
+  @media (max-width:899px) { #edit .nb { flex:.9; } #edit .lbl { flex:1.3; font-size:12px; } #sLive { font-size:20px; } }
+  #lvl.strong { background:var(--strong); border-color:var(--strong); color:#0B0B0B; }
   @media (min-width:900px) {
     body { padding:20px 28px; gap:12px; }
     h1 { font-size:28px; }
@@ -138,14 +157,19 @@
   <button id="snapBtn" title="Podgląd: przyciągnij akcenty do najsilniejszego uderzenia z analizy (±90 ms)">🧲<span class="desk"> Snap</span></button>
 </div>
 
+<div class="bar" id="passRow">
+  <div class="seg" title="Przejście: Akcenty = stukasz wszystkie akcenty; Mocne = drugie przejście, stuknięcie zmienia najbliższy akcent w MOCNY (klawisz P)"><button id="pAcc" class="on">● Akcenty</button><button id="pStr">⬤ Mocne</button></div>
+  <button id="winBtn" title="Okno szukania najbliższego akcentu w przejściu Mocne">±150 ms<small>okno</small></button>
+</div>
+
 <div id="info">
 <div id="edit">
   <div class="lbl" id="selLbl">Bit</div>
-  <button id="nL" class="nb">◀ 10 ms</button><button id="nR" class="nb">10 ms ▶</button>
-  <button id="del" class="danger ib">🗑</button><button id="desel" class="ib">✕</button>
+  <button id="nL" class="nb">◀ 10<span class="desk"> ms</span></button><button id="nR" class="nb">10<span class="desk"> ms</span> ▶</button>
+  <button id="lvl" title="Mocny / lekki (klawisz S na wybranym)">⬤ Mocny</button><button id="del" class="danger ib">🗑</button><button id="desel" class="ib">✕</button>
 </div>
 <div class="stats">
-  <div class="stat"><div class="k" id="kLive">Akcenty</div><div class="v g" id="sLive">0</div></div>
+  <div class="stat" id="stLive"><div class="k" id="kLive">Akcenty</div><div class="v g" id="sLive">0</div></div>
   <div class="stat"><div class="k" id="kBpm">Snap</div><div class="v" id="sBpm">–</div></div>
   <div class="stat"><div class="k" id="kBeats">Pętla</div><div class="v" id="sBeats">–</div></div>
   <div class="stat"><div class="k">Przejście</div><div class="v" id="sPass">0</div></div>
@@ -156,7 +180,10 @@
 
 <div id="pad">
   <button id="tap">TAP<small><span id="tapHint">stukaj akcenty</span><span class="desk"> · SPACJA</span></small></button>
-  <button id="dropBtn">DROP<small class="desk kbdh">D</small></button>
+  <div id="side">
+    <button id="strBtn" title="Mocny akcent od razu (Shift+Spacja)">MOCNY<small class="desk kbdh" style="font-size:12px"> Shift+␣</small></button>
+    <button id="dropBtn">DROP<small class="desk kbdh">D</small></button>
+  </div>
 </div>
 
 <div class="more">
@@ -170,6 +197,7 @@
 <div id="help">
   <b>Akcenty</b> (domyślnie): stukaj uderzenia, które czujesz (np. 3 z 4 w montagem), nie równy bit. Nie musisz trafiać idealnie:
   na serwerze każdy tap jest przyciągany do najsilniejszego uderzenia w ±90 ms. <b>Bit</b> = równe stukanie + BPM.<br>
+  <b>Mocne akcenty:</b> 1) stukaj wszystkie akcenty (lekkie), 2) przełącz na <b>⬤ Mocne</b> i puść utwór jeszcze raz: każde stuknięcie zmienia NAJBLIŻSZY akcent (okno ±150 ms, przycisk obok) w mocny; gdy w oknie nic nie ma, dodaje nowy mocny akcent. 3) Dotknij kreski → „Mocny/Lekki” zmienia poziom. Mocny od razu: przycisk MOCNY albo <kbd>Shift</kbd>+<kbd>SPACJA</kbd>. Cienka zielona kreska = lekki, gruba różowa z kropką = mocny.<br>
   <b>Pętla:</b> A = początek, B = koniec (włącza 🔁), stukasz ten sam fragment kilka razy, przejścia są uśredniane (60 ms). Przytrzymaj 🔁 = usuń A/B. Tempo 0.75×/0.5× zwalnia.<br>
   <b>🧲 Snap:</b> po wczytaniu analizy w 📚 widać blade żółte kreski uderzeń; Snap pokazuje na żółto, gdzie trafiłby każdy akcent (tylko podgląd, eksport go dołącza).<br>
   <b>Telefon:</b> Play → stukaj w duży przycisk TAP, DROP w momencie dropu. Przeciągnij falę, żeby przewijać.
@@ -177,7 +205,7 @@
   Na koniec „Wyślij JSON” → Telegram.<br>
   <b>Komputer:</b> <kbd>SPACJA</kbd> tap · <kbd>D</kbd> drop · <kbd>Backspace</kbd> cofnij · <kbd>R</kbd> wyczyść · <kbd>Enter</kbd> play/pauza ·
   <kbd>←</kbd><kbd>→</kbd> 1 s (z Shift 5 s) albo przesuń wybrany bit o 10 ms · <kbd>Delete</kbd> usuń wybrany · <kbd>Esc</kbd> odznacz ·
-  <kbd>C</kbd> kliki · <kbd>E</kbd> eksport · <kbd>A</kbd>/<kbd>B</kbd> pętla · <kbd>L</kbd> pętla on/off (Shift+L usuń) · <kbd>M</kbd> akcenty/bit · <kbd>S</kbd> snap. Wybrane kreski można też przeciągać myszką.
+  <kbd>C</kbd> kliki · <kbd>E</kbd> eksport · <kbd>A</kbd>/<kbd>B</kbd> pętla · <kbd>L</kbd> pętla on/off (Shift+L usuń) · <kbd>M</kbd> akcenty/bit · <kbd>P</kbd> przejście Akcenty/Mocne · <kbd>S</kbd> mocny/lekki na wybranym (bez wyboru: snap). Wybrane kreski można też przeciągać myszką.
   <textarea id="out" readonly></textarea>
 </div>
 
@@ -268,23 +296,61 @@ const BT = (() => {
     return { offset_ms: Math.round(med * 1000), spread_ms: Math.round(median(d.map((x) => Math.abs(x - med))) * 1000), n: d.length };
   }
 
-  /** Add a tap; a new pass starts when the tap is earlier than the last tap of the current pass. Returns [pi, ti]. */
-  function addTap(passes, t) {
+  /** Accent levels: `lv` is shaped like `passes` (lv[pi][ti]); 0 = light, 1 = strong, 2 = strong, added in the strong pass.
+   *  fitLevels makes lv match passes (old sessions/exports have no levels -> all light). */
+  const LIGHT = 0, STRONG = 1, ADDED = 2;
+  function fitLevels(passes, lv) {
+    return passes.map((p, pi) => p.map((_, ti) => { const v = lv && lv[pi] ? Number(lv[pi][ti]) : 0; return v === 1 || v === 2 ? v : 0; }));
+  }
+  /** Add a tap; a new pass starts when the tap is earlier than the last tap of the current pass. Returns [pi, ti].
+   *  With `lv`, the tap's level is stored too. */
+  function addTap(passes, t, lv = null, level = LIGHT) {
     let cur = passes[passes.length - 1];
-    if (!cur || (cur.length && t < cur[cur.length - 1] - 0.05)) { cur = []; passes.push(cur); }
+    if (!cur || (cur.length && t < cur[cur.length - 1] - 0.05)) { cur = []; passes.push(cur); if (lv) lv.push([]); }
     cur.push(t);
+    if (lv) { while (lv.length < passes.length) lv.push([]); lv[passes.length - 1].push(level); }
     return [passes.length - 1, cur.length - 1];
   }
 
-  /** Move all member taps by `delta` s (keeps each pass sorted). */
-  function nudge(passes, members, delta) {
+  /** Move all member taps by `delta` s (keeps each pass sorted; levels move with their taps). */
+  function nudge(passes, members, delta, lv = null) {
     for (const [pi, ti] of members) passes[pi][ti] = Math.max(0, passes[pi][ti] + delta);
-    passes.forEach((p) => p.sort((a, b) => a - b));
+    passes.forEach((p, pi) => {
+      if (!lv || !lv[pi]) return p.sort((a, b) => a - b);
+      const z = p.map((t, i) => [t, lv[pi][i] || 0]).sort((a, b) => a[0] - b[0]);
+      z.forEach(([t, l], i) => { p[i] = t; lv[pi][i] = l; });
+    });
   }
-  /** Delete member taps; returns passes without empty ones. */
-  function removeMembers(passes, members) {
+  /** Delete member taps; returns passes without empty ones (with `lv`: lv is updated in place to match). */
+  function removeMembers(passes, members, lv = null) {
     const kill = new Set(members.map(([pi, ti]) => pi + ":" + ti));
-    return passes.map((p, pi) => p.filter((_, ti) => !kill.has(pi + ":" + ti))).filter((p) => p.length);
+    const keep = passes.map((p, pi) => p.map((_, ti) => !kill.has(pi + ":" + ti)));
+    if (lv) { const nl = lv.map((p, pi) => p.filter((_, ti) => keep[pi] && keep[pi][ti])).filter((_, pi) => keep[pi] && keep[pi].some(Boolean)); lv.splice(0, lv.length, ...nl); }
+    return passes.map((p, pi) => p.filter((_, ti) => keep[pi][ti])).filter((p) => p.length);
+  }
+  /** Level of a merged accent: strong if ANY pass marked it strong; "added" only if all its taps came from the strong pass. */
+  function clusterLevel(c, lv) {
+    const ls = c.members.map(([pi, ti]) => (lv && lv[pi] ? lv[pi][ti] || 0 : 0));
+    return ls.every((l) => l === ADDED) ? ADDED : ls.some((l) => l > 0) ? STRONG : LIGHT;
+  }
+  function setLevel(lv, members, level) { for (const [pi, ti] of members) if (lv[pi]) lv[pi][ti] = level; }
+  /** Strong-pass tap at t: promote the NEAREST accent within ±win s (all its taps -> strong).
+   *  Nothing in the window -> a new strong accent flagged added_in_strong_pass (inserted sorted into the last pass).
+   *  Returns {action: "promote"|"already"|"add", t, members}. Mutates passes/lv. */
+  function strongTap(passes, lv, t, win = 0.15) {
+    const cl = clusters(passes, 0.06), i = nearest(cl.map((c) => c.t), t, win);
+    if (i >= 0) {
+      const c = cl[i], was = clusterLevel(c, lv);
+      if (was !== LIGHT) return { action: "already", t: c.t, members: c.members };
+      setLevel(lv, c.members, STRONG);
+      return { action: "promote", t: c.t, members: c.members };
+    }
+    if (!passes.length) { passes.push([]); lv.push([]); }
+    const pi = passes.length - 1, p = passes[pi];
+    while (lv.length < passes.length) lv.push([]);
+    let ti = p.findIndex((x) => x > t); if (ti < 0) ti = p.length;
+    p.splice(ti, 0, t); lv[pi].splice(ti, 0, ADDED);
+    return { action: "add", t, members: [[pi, ti]] };
   }
   /** Index of the item in `times` nearest to t within tol, or -1. */
   function nearest(times, t, tol) {
@@ -296,8 +362,8 @@ const BT = (() => {
   const r3 = (x) => Math.round(x * 1000) / 1000;
   /** mode "accents" (default): taps = accents he feels, no BPM; mode "beats": steady beat + BPM.
    *  snap = optional snapPreview() result, exported as a preview only (analyze.py does the real refinement). */
-  function buildExport({ file, duration, passes, drops, latency_ms, mode = "accents", snap = null }) {
-    const beats = clusters(passes, 0.06).map((c) => c.t);
+  function buildExport({ file, duration, passes, drops, latency_ms, mode = "accents", snap = null, lv = null, strong_window_ms = 150 }) {
+    const cl = clusters(passes, 0.06), beats = cl.map((c) => c.t);
     const bpm = mode === "beats" ? estimateBpm(beats) : null;
     const out = {
       file, duration: r3(duration), mode, bpm: bpm ? Math.round(bpm * 100) / 100 : null, latency_ms,
@@ -305,7 +371,15 @@ const BT = (() => {
       passes: passes.length, taps_raw: passes.map((p) => p.map(r3)),
       created: new Date().toISOString(), tool: "fps.center accent-tapper v3",
     };
-    if (mode === "accents") out.accents = out.beats.slice();
+    if (mode === "accents") {
+      const L = fitLevels(passes, lv), lev = cl.map((c) => clusterLevel(c, L));
+      out.accents = out.beats.slice();                                   // plain list (v2-compatible)
+      out.strong = out.beats.filter((_, i) => lev[i] > 0);              // plain list of strong accent times
+      out.accent_objects = out.beats.map((t, i) => ({ t, strength: lev[i] > 0 ? "strong" : "light", ...(lev[i] === ADDED ? { added_in_strong_pass: true } : {}) }));
+      out.taps_strength = L.map((p) => p.map((l) => (l === ADDED ? "added" : l ? "strong" : "light")));   // parallel to taps_raw
+      out.counts = { accents: beats.length, strong: out.strong.length, light: beats.length - out.strong.length };
+      out.strong_window_ms = strong_window_ms;
+    }
     if (mode === "accents" && snap && snap.items) out.snap_preview = { latency_ms: Math.round(snap.latency * 1000), window_ms: snap.window_ms,
       accents: snap.items.map((s) => ({ t_raw: r3(s.raw), t: r3(s.t), shift_ms: Math.round((s.t - s.raw) * 1000), snapped: s.snapped })) };
     return out;
@@ -447,7 +521,7 @@ const BT = (() => {
 
   return { median, clusters, mergeTaps, estimateBpm, songTimeAt, tapToSongTime, calibrationOffset, addTap,
            nudge, removeMembers, nearest, buildExport, computePeaks, makeClickWav, parseRef, matchTrack, fmt,
-           onsetStrengths, snapPreview, loopWrap };
+           onsetStrengths, snapPreview, loopWrap, fitLevels, clusterLevel, setLevel, strongTap, LIGHT, STRONG, ADDED };
 })();
 if (typeof module !== "undefined") module.exports = BT;
 </script>
@@ -468,6 +542,7 @@ if (typeof module !== "undefined") module.exports = BT;
     passes: [], drops: [], history: [], rate: 1, clicks: false, sel: null,
     latency: Number(localStorage.getItem("bt.latency_ms") || 0),
     mode: localStorage.getItem("bt.mode") === "beats" ? "beats" : "accents",
+    lv: [], strongPass: false, strongWin: Number(localStorage.getItem("bt.strongWin") || 150),
     loopA: null, loopB: null, loopOn: false, snapOn: localStorage.getItem("bt.snap") === "1", snap: null,
   };
   window.__bt = { S, audio, BT };
@@ -505,7 +580,7 @@ if (typeof module !== "undefined") module.exports = BT;
     if (btn) { btn.classList.add("hit"); setTimeout(() => btn.classList.remove("hit"), 90); }
     if (navigator.vibrate) try { navigator.vibrate(kind === "drop" ? 30 : 10); } catch {}
   }
-  const snapshot = () => JSON.stringify({ passes: S.passes, drops: S.drops });
+  const snapshot = () => JSON.stringify({ passes: S.passes, drops: S.drops, lv: S.lv });
   function remember() { S.history.push(snapshot()); if (S.history.length > 300) S.history.shift(); }
   function save() { if (S.fileKey) try { localStorage.setItem(S.fileKey, snapshot()); } catch {} }
   const beatClusters = () => BT.clusters(S.passes, 0.06);
@@ -534,10 +609,10 @@ if (typeof module !== "undefined") module.exports = BT;
     } catch (err) {
       console.error(err); $("pick").textContent = `⚠️ ${file.name}: nie da się zdekodować (mp3/m4a/wav)`; return;
     }
-    S.passes = []; S.drops = []; S.history = []; S.sel = null; S.loopA = S.loopB = null; S.loopOn = false;
+    S.passes = []; S.lv = []; S.drops = []; S.history = []; S.sel = null; S.loopA = S.loopB = null; S.loopOn = false;
     const prev = localStorage.getItem(S.fileKey);
     if (prev) try {
-      const p = JSON.parse(prev); S.passes = p.passes || []; S.drops = p.drops || [];
+      const p = JSON.parse(prev); S.passes = p.passes || []; S.drops = p.drops || []; S.lv = BT.fitLevels(S.passes, p.lv);
       const n = S.passes.flat().length; if (n || S.drops.length) toast(`Przywrócono ${n} tapów z poprzedniej sesji`, 3500);
     } catch {}
     $("pick").textContent = `🎵 ${file.name} · ${BT.fmt(S.duration, 1)}`; $("pick").classList.add("loaded");
@@ -626,6 +701,8 @@ if (typeof module !== "undefined") module.exports = BT;
     $("mAcc").classList.toggle("on", S.mode === "accents"); $("mBeat").classList.toggle("on", S.mode === "beats");
     $("tapHint").textContent = S.mode === "accents" ? "stukaj akcenty" : "stukaj w rytm";
     $("snapBtn").style.display = S.mode === "accents" ? "" : "none";
+    $("passRow").style.display = S.mode === "accents" ? "" : "none"; $("strBtn").style.display = S.mode === "accents" ? "" : "none";
+    if (S.mode !== "accents" && S.strongPass) setPass(false);
     recomputeSnap(); update(); draw();
   }
   $("mAcc").addEventListener("click", () => setMode("accents"));
@@ -692,15 +769,43 @@ if (typeof module !== "undefined") module.exports = BT;
   $("helpBtn").addEventListener("click", () => $("help").classList.toggle("open"));
 
   // ---------- tapping ----------
-  function tap(evTs) {
+  // strong = true: a direct strong accent (MOCNY button / Shift+Space) in the normal pass
+  function tap(evTs, strong = false) {
     if (!S.peaks) return toast("Najpierw wybierz utwór");
     if (audio.paused) return toast("Najpierw ▶ Play, potem stukaj w trakcie");
     const t = BT.tapToSongTime(clock.at(evTs), S.latency, S.rate);
     remember();
-    if (S.forcePass) { S.forcePass = false; const last = S.passes[S.passes.length - 1]; if (last && last.length) S.passes.push([]); }
-    BT.addTap(S.passes, t);
-    flash("hit", $("tap")); changed();
+    S.lv = BT.fitLevels(S.passes, S.lv);
+    if (S.mode === "accents" && S.strongPass) {   // strong pass: promote the nearest accent, never a new pass
+      S.forcePass = false;
+      const r = BT.strongTap(S.passes, S.lv, t, S.strongWin / 1000);
+      S.lastStrong = r;
+      flash("hit", $("tap"));
+      if (r.action === "add") toast(`+ nowy mocny @ ${BT.fmt(t)} (brak akcentu w ±${S.strongWin} ms)`, 1500);
+      return changed();
+    }
+    if (S.forcePass) { S.forcePass = false; const last = S.passes[S.passes.length - 1]; if (last && last.length) { S.passes.push([]); S.lv.push([]); } }
+    BT.addTap(S.passes, t, S.lv, strong && S.mode === "accents" ? BT.STRONG : BT.LIGHT);
+    flash("hit", $(strong ? "strBtn" : "tap")); changed();
   }
+  function setPass(strong) {
+    S.strongPass = !!strong && S.mode === "accents";
+    document.body.classList.toggle("strongPass", S.strongPass);
+    $("pAcc").classList.toggle("on", !S.strongPass); $("pStr").classList.toggle("on", S.strongPass);
+    $("tap").firstChild.textContent = S.strongPass ? "MOCNY" : "TAP";
+    $("tapHint").textContent = S.mode !== "accents" ? "stukaj w rytm" : S.strongPass ? `najbliższy akcent → mocny` : "stukaj akcenty";
+    update(); draw();
+  }
+  $("pAcc").addEventListener("click", () => setPass(false));
+  $("pStr").addEventListener("click", () => { setPass(true); if (!beatClusters().length) toast("Najpierw stuknij akcenty, potem przejście Mocne", 2500); });
+  const WINS = [80, 100, 150, 200, 250];
+  function winUI() { $("winBtn").innerHTML = `±${S.strongWin} ms<small>okno</small>`; }
+  $("winBtn").addEventListener("click", () => {
+    S.strongWin = WINS[(WINS.indexOf(S.strongWin) + 1) % WINS.length] || 150;
+    try { localStorage.setItem("bt.strongWin", String(S.strongWin)); } catch {}
+    winUI(); toast(`Okno mocnych: ±${S.strongWin} ms`);
+  });
+  winUI();
   function markDrop(evTs) {
     if (!S.peaks) return;
     const t = audio.paused ? audio.currentTime : BT.tapToSongTime(clock.at(evTs), S.latency, S.rate);
@@ -710,12 +815,12 @@ if (typeof module !== "undefined") module.exports = BT;
   function undo() {
     const h = S.history.pop();
     if (!h) return toast("Nie ma czego cofnąć");
-    const p = JSON.parse(h); S.passes = p.passes; S.drops = p.drops; S.sel = null; selUI(); changed(); toast("Cofnięto");
+    const p = JSON.parse(h); S.passes = p.passes; S.drops = p.drops; S.lv = BT.fitLevels(S.passes, p.lv); S.sel = null; selUI(); changed(); toast("Cofnięto");
   }
   function clearAll() {
     if (!S.passes.flat().length && !S.drops.length) return;
     if (!confirm("Wyczyścić wszystkie tapy i dropy tego utworu?")) return;
-    remember(); S.passes = []; S.drops = []; S.sel = null; selUI(); changed(); toast("Wyczyszczono (Cofnij przywraca)");
+    remember(); S.passes = []; S.lv = []; S.drops = []; S.sel = null; selUI(); changed(); toast("Wyczyszczono (Cofnij przywraca)");
   }
   // pointerdown = fires on touch start, no 300 ms click delay; preventDefault stops the emulated mouse/click/zoom
   function bindPad(el, fn) {
@@ -725,6 +830,7 @@ if (typeof module !== "undefined") module.exports = BT;
   }
   bindPad($("tap"), tap);
   bindPad($("dropBtn"), markDrop);
+  bindPad($("strBtn"), (ts) => tap(ts, true));
   $("undoBtn").addEventListener("click", undo);
   $("clearBtn").addEventListener("click", clearAll);
   document.addEventListener("dblclick", (e) => e.preventDefault(), { passive: false });
@@ -739,6 +845,11 @@ if (typeof module !== "undefined") module.exports = BT;
   function selUI() {
     const s = selected();
     $("edit").classList.toggle("open", !!s);
+    $("lvl").style.display = s && S.sel.type !== "drop" && S.mode === "accents" ? "" : "none";
+    if (s && S.sel.type !== "drop") {
+      const st = selLevel() > 0;
+      $("lvl").classList.toggle("strong", st); $("lvl").textContent = st ? "⬤ Mocny" : "○ Lekki";
+    }
     if (s) {
       const w = S.mode === "accents" ? "Akcent" : "Bit";
       const n = S.sel.type === "drop" ? "DROP" : S.sel.members.length > 1 ? `${w} (${S.sel.members.length} tapy)` : w;
@@ -746,6 +857,15 @@ if (typeof module !== "undefined") module.exports = BT;
       $("selLbl").innerHTML = `${n}<br>${BT.fmt(t, 3)}`;
     }
   }
+  function selLevel() { return BT.clusterLevel({ members: S.sel.members }, BT.fitLevels(S.passes, S.lv)); }
+  function toggleLevel() {
+    if (!S.sel || S.sel.type === "drop" || S.mode !== "accents") return false;
+    remember(); S.lv = BT.fitLevels(S.passes, S.lv);
+    const to = selLevel() > 0 ? BT.LIGHT : BT.STRONG;
+    BT.setLevel(S.lv, S.sel.members, to);
+    selUI(); changed(); toast(to ? "⬤ Mocny" : "○ Lekki", 1000); return true;
+  }
+  $("lvl").addEventListener("click", toggleLevel);
   function beatTimeOfSel() { const ts = S.sel.members.map(([pi, ti]) => S.passes[pi][ti]); return ts.reduce((a, b) => a + b, 0) / ts.length; }
   function selectAt(t, tolS) {
     const di = BT.nearest(S.drops, t, tolS);
@@ -762,7 +882,8 @@ if (typeof module !== "undefined") module.exports = BT;
     if (S.sel.type === "drop") S.drops[S.sel.idx] = Math.max(0, S.drops[S.sel.idx] + delta);
     else {
       const vals = S.sel.members.map(([pi, ti]) => [pi, S.passes[pi][ti] + delta]);
-      BT.nudge(S.passes, S.sel.members, delta);
+      S.lv = BT.fitLevels(S.passes, S.lv);
+      BT.nudge(S.passes, S.sel.members, delta, S.lv);
       S.sel.members = vals.map(([pi, v]) => [pi, S.passes[pi].findIndex((x) => Math.abs(x - Math.max(0, v)) < 1e-9)]);
     }
     selUI(); changed();
@@ -771,7 +892,7 @@ if (typeof module !== "undefined") module.exports = BT;
     if (!S.sel) return;
     remember();
     if (S.sel.type === "drop") S.drops.splice(S.sel.idx, 1);
-    else S.passes = BT.removeMembers(S.passes, S.sel.members);
+    else { S.lv = BT.fitLevels(S.passes, S.lv); S.passes = BT.removeMembers(S.passes, S.sel.members, S.lv); }
     S.sel = null; selUI(); changed(); toast("Usunięto");
   }
   $("nL").addEventListener("click", () => moveSel(-0.01));
@@ -782,7 +903,7 @@ if (typeof module !== "undefined") module.exports = BT;
   // ---------- export / share ----------
   function exportData() {
     return BT.buildExport({ file: S.file.name, duration: S.duration, passes: S.passes, drops: S.drops, latency_ms: S.latency,
-                            mode: S.mode, snap: S.mode === "accents" && S.snapOn ? S.snap : null });
+                            mode: S.mode, snap: S.mode === "accents" && S.snapOn ? S.snap : null, lv: S.lv, strong_window_ms: S.strongWin });
   }
   async function doExport() {
     if (!S.file) return;
@@ -813,7 +934,7 @@ if (typeof module !== "undefined") module.exports = BT;
   window.addEventListener("keydown", (e) => {
     if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
     const k = e.code;
-    if (k === "Space") { e.preventDefault(); if (e.repeat) return; return calib.active ? calibTap(e.timeStamp) : tap(e.timeStamp); }
+    if (k === "Space") { e.preventDefault(); if (e.repeat) return; return calib.active ? calibTap(e.timeStamp) : tap(e.timeStamp, e.shiftKey); }
     if (e.repeat && !(k === "ArrowLeft" || k === "ArrowRight")) return;
     if (k === "KeyD") return markDrop(e.timeStamp);
     if (k === "Backspace") { e.preventDefault(); return undo(); }
@@ -831,7 +952,8 @@ if (typeof module !== "undefined") module.exports = BT;
     if (k === "KeyB") return setB();
     if (k === "KeyL") return e.shiftKey ? clearLoop() : toggleLoop();
     if (k === "KeyM") return setMode(S.mode === "accents" ? "beats" : "accents");
-    if (k === "KeyS") return toggleSnap();
+    if (k === "KeyS") return toggleLevel() || toggleSnap();
+    if (k === "KeyP") return setPass(!S.strongPass);
   }, true);
   window.addEventListener("keyup", (e) => { if (e.code === "Space") e.preventDefault(); }, true);
   document.querySelectorAll("button").forEach((b) => b.addEventListener("keydown", (e) => { if (e.code === "Space" || e.code === "Enter") e.preventDefault(); }));
@@ -950,13 +1072,19 @@ if (typeof module !== "undefined") module.exports = BT;
       g.fillStyle = PASS_COL[i % PASS_COL.length];
       for (const t of p) if (t >= t0 && t <= t1) g.fillRect(X(t) - 1, h - 20, 2, 16);
     });
+    // light = thin green line (shorter); strong = thick pink line, full height + filled dot on top (shape + colour)
+    const L = S.mode === "accents" ? BT.fitLevels(S.passes, S.lv) : null;
     for (const c of beatClusters()) {
       if (c.t < t0 || c.t > t1) continue;
       const isSel = selKey && c.members.some((m) => selKey.has(m.join(":")));
-      g.fillStyle = isSel ? "#FFFFFF" : "rgba(0,255,128,.9)";
-      const wdt = detail ? (isSel ? 4 : 2) : 1;
-      g.fillRect(X(c.t) - wdt / 2, detail ? 4 : 0, wdt, detail ? h - 28 : h);
-      if (isSel && detail) { g.beginPath(); g.arc(X(c.t), 10, 7, 0, 7); g.fill(); }
+      const st = L ? BT.clusterLevel(c, L) > 0 : false;
+      g.fillStyle = isSel ? "#FFFFFF" : st ? "#FF4FA3" : "rgba(0,255,128,.9)";
+      if (!detail) { const wd = st ? 2 : 1; g.fillRect(X(c.t) - wd / 2, st ? 0 : h * 0.3, wd, st ? h : h * 0.7); continue; }
+      const wdt = st ? (isSel ? 6 : 5) : isSel ? 3 : 1.5, top = st ? 16 : 30;
+      g.fillRect(X(c.t) - wdt / 2, top, wdt, h - 28 - (top - 4));
+      if (st) { g.beginPath(); g.arc(X(c.t), 11, 7, 0, 7); g.fill(); }
+      else if (isSel) { g.beginPath(); g.arc(X(c.t), 24, 5, 0, 7); g.fill(); }
+      if (isSel && st) { g.strokeStyle = "#FF4FA3"; g.lineWidth = 2; g.beginPath(); g.arc(X(c.t), 11, 9.5, 0, 7); g.stroke(); }
     }
     if (S.snap && S.mode === "accents") {
       g.fillStyle = "#FFD84D"; g.strokeStyle = "rgba(255,216,77,.75)"; g.lineWidth = 1;
@@ -1050,7 +1178,8 @@ if (typeof module !== "undefined") module.exports = BT;
     const all = beatClusters().map((c) => c.t);
     $("snapBtn").classList.toggle("on", S.snapOn && S.mode === "accents");
     if (S.mode === "accents") {   // accents: no BPM from taps (an accent pattern has no steady tempo)
-      $("kLive").textContent = "Akcenty"; $("sLive").textContent = all.length;
+      const L = BT.fitLevels(S.passes, S.lv), nS = beatClusters().filter((c) => BT.clusterLevel(c, L) > 0).length;
+      $("kLive").textContent = "akcenty · mocne"; $("sLive").innerHTML = `${all.length}<span style="color:var(--muted)"> · </span><span style="color:var(--strong)">${nS}</span>`;
       $("kBpm").textContent = "Snap ±90";
       $("sBpm").textContent = S.snap ? `${S.snap.n}/${S.snap.items.length}` : refPeaks() ? "off" : "–";
       $("kBeats").textContent = "Pętla"; $("sBeats").textContent = S.loopB != null ? (S.loopOn ? "ON" : "off") : "–";
@@ -1066,7 +1195,7 @@ if (typeof module !== "undefined") module.exports = BT;
     $("sLat").textContent = `${S.latency} ms`; $("latShow").textContent = `${S.latency} ms`;
     if (audio.paused) draw();
   }
-  setMode(S.mode); loopUI(); update(); draw();
+  setMode(S.mode); setPass(false); loopUI(); update(); draw();
 })();
 </script>
 </body>
