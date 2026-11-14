@@ -122,6 +122,28 @@
   #sLive { white-space:nowrap; }
   @media (max-width:899px) { #edit .nb { flex:.9; } #edit .lbl { flex:1.3; font-size:12px; } #sLive { font-size:20px; } }
   #lvl.strong { background:var(--strong); border-color:var(--strong); color:#0B0B0B; }
+  #savedRow { display:none; } #savedRow.show { display:flex; }
+  #savedRow button { flex:0 0 auto; font-size:13px; padding:7px 10px; border-radius:999px; }
+  #savedBadge { flex:1 1 auto; min-width:0; font-size:13px; font-weight:800; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #savedBadge.on { color:var(--green); }
+  #savedBadge.on span { background:rgba(0,255,128,.12); border:1px solid rgba(0,255,128,.35); border-radius:999px; padding:5px 10px; }
+  #savedBadge b { color:var(--strong); }
+  #prevBtn { background:#1b1b2a; border-color:#34345a; color:#cfd0ff; }
+  .chBig { font-size:17px; padding:16px 14px; white-space:normal; text-align:left; line-height:1.3; }
+  #prev { padding:max(10px, env(safe-area-inset-top)) 12px max(10px, env(safe-area-inset-bottom)); gap:8px; align-items:stretch; }
+  #prev h2 { font-size:18px; }
+  #pvHud { flex:0 0 auto !important; font-size:13px; font-weight:800; color:var(--muted); font-variant-numeric:tabular-nums; }
+  #pvWrap { position:relative; flex:1 1 0; min-height:0; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  #pvCanvas { border-radius:14px; background:#000; touch-action:manipulation; }   /* exact 9:16 size set by pvFit() */
+  #pvInfo { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); font-size:14px; font-weight:900; padding:5px 12px;
+            border-radius:999px; background:rgba(0,0,0,.55); color:#fff; white-space:nowrap; font-variant-numeric:tabular-nums; pointer-events:none; }
+  .pvBar button { font-size:15px; padding:10px 4px; }
+  #pvPlay { flex:.8; } #pvSpd { flex:.6; } #pvLight { flex:1.5; } #pvAdd { flex:1.6; }
+  @media (max-width:899px) { .pvBar button { font-size:14px; } .pvBar { gap:6px; } }
+  #prev:fullscreen { background:#000; } #prev:fullscreen .pvTop { display:none; } #prev.fs .pvTop { display:none; }
+  @media (max-width:899px) { #savedRow { gap:6px; } #savedBadge { white-space:normal; font-size:11.5px; line-height:1.2; }
+    #savedBadge.on span { background:none; border:0; border-left:3px solid var(--green); border-radius:0; padding:0 0 0 7px; display:block; }
+    #savedRow button { padding:7px 9px; } #pad { min-height:24dvh; } }
   @media (min-width:900px) {
     body { padding:20px 28px; gap:12px; }
     h1 { font-size:28px; }
@@ -147,6 +169,11 @@
 
 <canvas id="overview"></canvas>
 <canvas id="detail"></canvas>
+<div class="bar" id="savedRow">
+  <div id="savedBadge" title="Twoje akcenty zapisane w bibliotece (analyze.py: dociągnięte do uderzeń)"><span id="savedTxt"></span></div>
+  <button id="savedView" title="Pokaż Twoje surowe tapy albo poprawione akcenty (Cofnij przywraca)">⇄ surowe</button>
+  <button id="prevBtn" title="Podgląd montażu: zdjęcia przełączają się na akcentach">▶ Podgląd<span class="desk"> montażu</span></button>
+</div>
 
 <div class="bar">
   <button id="b5">−5 s</button><button id="b1">−1 s</button>
@@ -234,6 +261,29 @@
   <input id="libFile" type="file" accept=".json,application/json,text/plain" hidden>
   <div id="libList"></div>
   <p id="libNow" style="font-size:14px"></p>
+</div>
+
+<div class="modal" id="choose">
+  <h2>Które akcenty wczytać?</h2>
+  <p id="chooseTxt">Ten utwór ma Twoje zapisane akcenty w bibliotece, a na tym urządzeniu jest też Twoja niezapisana sesja.</p>
+  <button id="chLib" class="primary chBig"></button>
+  <button id="chLocal" class="chBig"></button>
+  <p style="font-size:14px;color:var(--muted)">Drugiej wersji nie kasuję: lokalna sesja zostaje, dopóki czegoś nie zmienisz; zapisane z biblioteki zawsze możesz wczytać ponownie przyciskiem „📚 wczytaj” pod falą.</p>
+</div>
+
+<div class="modal" id="prev">
+  <div class="bar pvTop"><h2 style="flex:1">Podgląd montażu</h2><span id="pvHud"></span></div>
+  <div id="pvWrap"><canvas id="pvCanvas" width="1080" height="1920"></canvas><div id="pvInfo"></div></div>
+  <div class="bar pvBar">
+    <button id="pvPlay" class="primary">▶</button><button id="pvSpd" title="Tempo (jak 1× / 0.75× / 0.5×)">1×</button>
+    <button id="pvLight" title="Lekkie akcenty: cięcie do następnego zdjęcia albo tylko mały zoom">lekkie: <b id="pvLightS">cięcie</b></button>
+    <button id="pvFlash" title="Biały błysk 2 klatki na mocnych akcentach">błysk <b id="pvFlashS">ON</b></button>
+  </div>
+  <div class="bar pvBar">
+    <button id="pvAdd">📷 Dodaj zdjęcia</button><button id="pvDef" title="Wróć do domyślnych obrazków">↺ domyślne</button>
+    <button id="pvFull" title="Pełny ekran (F)">⤢ Pełny<span class="desk"> ekran</span></button><button id="pvClose">✕ Zamknij</button>
+  </div>
+  <input id="pvFile" type="file" accept="image/*" multiple hidden>
 </div>
 
 <div id="flash"></div>
@@ -500,7 +550,8 @@ const BT = (() => {
                duration: Number(t.duration) || null, beats, downbeats: num(t.downbeats), drops, windows, onsets,
                file: t.file || t.audio || (t.files && t.files.phone_mp3) || "",
                audio_name: t.audio_file_name || String((t.files && t.files.phone_mp3) || "").split("/").pop(),
-               hint: t.get_audio_hint || "", audio_url: typeof t.audio_url === "string" && t.audio_url ? t.audio_url : null };
+               hint: t.get_audio_hint || "", audio_url: typeof t.audio_url === "string" && t.audio_url ? t.audio_url : null,
+               saved: parseSaved(t.accents_saved) };
     };
     const list = Array.isArray(doc.tracks) ? doc.tracks.map(one).filter(Boolean) : [one(doc)].filter(Boolean);
     return list.length ? { tracks: list, isLibrary: Array.isArray(doc.tracks) } : null;
@@ -532,6 +583,68 @@ const BT = (() => {
     return { ok: false, by: null, diff };
   }
 
+  /** LIBRARY.json track.accents_saved (build_library.py: his saved accents) -> normalised, or null. */
+  function parseSaved(s) {
+    if (!s || !Array.isArray(s.items) || !s.items.length) return null;
+    const nums = (a) => (Array.isArray(a) ? a.map(Number).filter(Number.isFinite).sort((p, q) => p - q) : []);
+    const items = s.items.map((i) => ({ t: Number(i.t), t_raw: Number.isFinite(Number(i.t_raw)) ? Number(i.t_raw) : Number(i.t),
+      strong: i.strength === "strong", low_conf: !!i.low_conf })).filter((i) => Number.isFinite(i.t)).sort((p, q) => p.t - q.t);
+    if (!items.length) return null;
+    const drops = nums(s.drops_user), dropsRaw = nums(s.drops_user_raw);
+    return { refined: s.refined !== false, source: String(s.source || ""), updated: s.updated || null, latency_ms: s.latency_ms ?? null,
+             items, n: items.length, strong: items.filter((i) => i.strong).length, low_conf: items.filter((i) => i.low_conf).length,
+             drops, drops_raw: dropsRaw.length ? dropsRaw : drops };
+  }
+  /** Saved accents -> an editable session {passes:[[t]], lv:[[level]], drops} (view "refined" = t, "raw" = his taps). */
+  function savedSession(sv, view = "refined") {
+    const raw = view === "raw";
+    const z = sv.items.map((i) => [r3(raw ? i.t_raw : i.t), i.strong ? STRONG : LIGHT]).sort((a, b) => a[0] - b[0]);
+    return { passes: z.length ? [z.map((x) => x[0])] : [], lv: z.length ? [z.map((x) => x[1])] : [], drops: (raw ? sv.drops_raw : sv.drops).map(r3) };
+  }
+  /** Same accents/levels/drops (1 ms)? Used to tell "his local session" from "what the library already has". */
+  function sameSession(a, b) {
+    const k = (s) => JSON.stringify({ p: (s.passes || []).map((p) => p.map(r3)), l: fitLevels(s.passes || [], s.lv), d: (s.drops || []).map(r3) });
+    return k(a) === k(b);
+  }
+  const sessionTaps = (s) => (s && s.passes ? s.passes.reduce((n, p) => n + p.length, 0) : 0);
+
+  /** Edit preview events. accents = [{t, strong}], drops = [t]. light = "cut" (every light accent cuts too) | "fx"
+   *  (light = small zoom only, no cut). Strong + drops always cut. An accent within 80 ms of a drop becomes that drop.
+   *  -> [{t, kind: "strong"|"light"|"drop", cut, n}] sorted, n = 1-based accent number (drops: nearest accent's). */
+  function previewEvents(accents, drops = [], light = "fx") {
+    const A = accents.filter((a) => Number.isFinite(a.t)).map((a) => ({ t: a.t, strong: !!a.strong })).sort((p, q) => p.t - q.t);
+    const D = drops.filter(Number.isFinite).sort((p, q) => p - q), used = new Set(), ev = [];
+    A.forEach((a, i) => {
+      const di = D.findIndex((d, j) => !used.has(j) && Math.abs(d - a.t) <= 0.08);
+      if (di >= 0) { used.add(di); ev.push({ t: a.t, kind: "drop", cut: true, n: i + 1, strong: a.strong }); return; }
+      ev.push({ t: a.t, kind: a.strong ? "strong" : "light", cut: a.strong || light === "cut", n: i + 1, strong: a.strong });
+    });
+    D.forEach((d, j) => { if (!used.has(j)) ev.push({ t: d, kind: "drop", cut: true, n: 0, strong: true }); });
+    ev.sort((p, q) => p.t - q.t);
+    let c = 0; for (const e of ev) { if (e.cut) c++; e.cuts = c; }   // cuts so far, including this one
+    return ev;
+  }
+  /** Preview state at media time t: image index = cuts up to t (mod nImg); last event + seconds since it. Pure, so
+   *  seeking, the A–B loop and 0.5×/0.75× all just work (everything follows the song time). */
+  function previewState(ev, t, nImg = 1) {
+    let lo = 0, hi = ev.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (ev[m].t <= t) lo = m + 1; else hi = m; }
+    const i = lo - 1, e = i >= 0 ? ev[i] : null, cuts = e ? e.cuts : 0;
+    let lastCut = null; for (let j = i; j >= 0; j--) if (ev[j].cut) { lastCut = ev[j]; break; }
+    return { i, event: e, age: e ? t - e.t : Infinity, cuts, img: nImg > 0 ? cuts % nImg : 0, lastCut, cutAge: lastCut ? t - lastCut.t : Infinity };
+  }
+  /** Zoom / flash of the preview frame `age` s after event e (ease-out up, ease-in-out back). */
+  function previewFx(e, age, flashOn = true, fps = 60) {
+    if (!e || !(age >= 0)) return { scale: 1, flash: 0 };
+    const out = (x) => 1 - (1 - x) ** 3, io = (x) => (x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2);
+    const P = e.kind === "drop" ? { z: 0.12, up: 0.16, back: 0.5 } : e.kind === "strong" ? { z: 0.06, up: 0.12, back: 0.3 } : { z: 0.025, up: 0.08, back: 0.2 };
+    const scale = age < P.up ? 1 + P.z * out(age / P.up) : age < P.up + P.back ? 1 + P.z * (1 - io((age - P.up) / P.back)) : 1;
+    let flash = 0;
+    if (flashOn && e.kind === "strong" && age < 2 / fps) flash = 0.55;                       // 2 frames white
+    if (e.kind === "drop") flash = age < 2 / fps ? 0.95 : age < 0.18 ? 0.95 * (1 - (age - 2 / fps) / (0.18 - 2 / fps)) : 0;
+    return { scale, flash };
+  }
+
   const fmt = (s, dec = 2) => {
     if (!Number.isFinite(s) || s < 0) s = 0;
     const m = Math.floor(s / 60), r = s - m * 60;
@@ -540,7 +653,8 @@ const BT = (() => {
 
   return { median, clusters, mergeTaps, estimateBpm, songTimeAt, tapToSongTime, calibrationOffset, addTap,
            nudge, removeMembers, nearest, buildExport, computePeaks, makeClickWav, parseRef, matchTrack, audioMatches, fmt,
-           onsetStrengths, snapPreview, loopWrap, fitLevels, clusterLevel, setLevel, strongTap, LIGHT, STRONG, ADDED };
+           onsetStrengths, snapPreview, loopWrap, fitLevels, clusterLevel, setLevel, strongTap, LIGHT, STRONG, ADDED,
+           parseSaved, savedSession, sameSession, sessionTaps, previewEvents, previewState, previewFx };
 })();
 if (typeof module !== "undefined") module.exports = BT;
 </script>
@@ -601,7 +715,7 @@ if (typeof module !== "undefined") module.exports = BT;
   }
   const snapshot = () => JSON.stringify({ passes: S.passes, drops: S.drops, lv: S.lv });
   function remember() { S.history.push(snapshot()); if (S.history.length > 300) S.history.shift(); }
-  function save() { if (S.fileKey) try { localStorage.setItem(S.fileKey, snapshot()); } catch {} }
+  function save() { if (S.fileKey) try { localStorage.setItem(S.fileKey, JSON.stringify({ passes: S.passes, drops: S.drops, lv: S.lv, at: Date.now() })); } catch {} }
   const beatClusters = () => BT.clusters(S.passes, 0.06);
   const changed = () => { save(); recomputeSnap(); update(); draw(); };
   window.__bt.refresh = () => { recomputeSnap(); update(); draw(); };
@@ -630,12 +744,10 @@ if (typeof module !== "undefined") module.exports = BT;
       console.error(err); $("pick").textContent = `⚠️ ${file.name}: nie da się zdekodować (mp3/m4a/wav)`; return;
     }
     $("lib").classList.remove("open"); $("libNow").classList.remove("ask");
-    S.passes = []; S.lv = []; S.drops = []; S.history = []; S.sel = null; S.loopA = S.loopB = null; S.loopOn = false;
+    S.passes = []; S.lv = []; S.drops = []; S.history = []; S.sel = null; S.loopA = S.loopB = null; S.loopOn = false; S.loaded = null;
+    let local = null;
     const prev = localStorage.getItem(S.fileKey);
-    if (prev) try {
-      const p = JSON.parse(prev); S.passes = p.passes || []; S.drops = p.drops || []; S.lv = BT.fitLevels(S.passes, p.lv);
-      const n = S.passes.flat().length; if (n || S.drops.length) toast(`Przywrócono ${n} tapów z poprzedniej sesji`, 3500);
-    } catch {}
+    if (prev) try { const p = JSON.parse(prev); local = { passes: p.passes || [], drops: p.drops || [], lv: p.lv, at: p.at || null }; } catch {}
     $("pick").textContent = `🎵 ${file.name} · ${BT.fmt(S.duration, 1)}`; $("pick").classList.add("loaded");
     $("play").disabled = false; $("exportBtn").disabled = false;
     audio.currentTime = 0;
@@ -649,9 +761,64 @@ if (typeof module !== "undefined") module.exports = BT;
     } else ref = S.lib && BT.matchTrack(S.lib.tracks, file.name, S.duration);
     attachRef(ref, warn);
     if (ref && ref.id && BT.audioMatches(ref, file.name, S.duration).ok) { S.attached.set(ref.id, file); if (!onServer(ref)) cacheAudio(ref, file); }
+    // which accents become the CURRENT editable ones: his saved ones from the library, his local session, or ask
+    const sv = ref && ref.saved, hasLocal = !!local && (BT.sessionTaps(local) > 0 || local.drops.length > 0);
+    const asLib = (view) => sv && hasLocal && BT.sameSession(local, BT.savedSession(sv, view));
+    if (sv && hasLocal && !asLib("refined") && !asLib("raw")) askWhich(sv, local);
+    else if (sv) applySaved(sv, asLib("raw") ? "raw" : "refined", false, !warn);
+    else if (hasLocal) applyLocal(local);
     renderLib();
-    loopUI();
+    loopUI(); savedUI();
   }
+  function applySaved(sv, view, record = true, announce = true) {
+    if (record) remember();
+    const s = BT.savedSession(sv, view);
+    S.passes = s.passes; S.lv = BT.fitLevels(s.passes, s.lv); S.drops = s.drops; S.sel = null;
+    if (S.mode !== "accents") setMode("accents");
+    S.loaded = { from: "lib", view, sv, base: snapshot() };
+    selUI(); recomputeSnap(); update(); draw();
+    if (announce) toast(`📚 Twoje akcenty (${view === "raw" ? "surowe" : sv.refined ? "poprawione" : "surowe"}): ${sv.n} · mocne ${sv.strong}${s.drops.length ? ` · drop ${s.drops.length}` : ""}`, 3500);
+  }
+  function applyLocal(local, record = false) {
+    if (record) remember();
+    S.passes = local.passes; S.drops = local.drops; S.lv = BT.fitLevels(S.passes, local.lv); S.sel = null;
+    S.loaded = { from: "local", sv: S.ref && S.ref.saved, base: snapshot() };
+    selUI(); recomputeSnap(); update(); draw();
+    toast(`Przywrócono ${BT.sessionTaps(local)} tapów z poprzedniej sesji`, 3500);
+  }
+  function askWhich(sv, local) {
+    const at = local.at ? new Date(local.at).toLocaleString("pl-PL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+    const n = BT.clusters(local.passes, 0.06).length, L = BT.fitLevels(local.passes, local.lv);
+    const m = BT.clusters(local.passes, 0.06).filter((c) => BT.clusterLevel(c, L) > 0).length;
+    $("chLib").textContent = `📚 Zapisane z biblioteki · ${sv.n} akcentów · mocne ${sv.strong}${sv.refined ? " (poprawione)" : ""}`;
+    $("chLocal").textContent = `📱 Moja lokalna sesja · ${n} akcentów · mocne ${m}${local.drops.length ? ` · drop ${local.drops.length}` : ""}${at ? ` · ${at}` : ""}`;
+    $("choose").classList.add("open");
+    $("chLib").onclick = () => { $("choose").classList.remove("open"); applySaved(sv, "refined", false); savedUI(); };
+    $("chLocal").onclick = () => { $("choose").classList.remove("open"); applyLocal(local); savedUI(); };
+  }
+  function savedUI() {
+    $("savedRow").classList.toggle("show", !!S.peaks);
+    const sv = S.ref && S.ref.saved, L = S.loaded, b = $("savedBadge"), v = $("savedView");
+    if (!sv) { b.classList.remove("on"); $("savedTxt").textContent = S.ref ? "Brak zapisanych akcentów dla tego utworu" : ""; v.style.display = "none"; return; }
+    if (L && L.from === "lib") {
+      const cl = beatClusters(), lv = BT.fitLevels(S.passes, S.lv), m = cl.filter((c) => BT.clusterLevel(c, lv) > 0).length;
+      const what = L.view === "raw" || !sv.refined ? "surowe" : "poprawione";
+      $("savedTxt").innerHTML = `Twoje akcenty (${what}) · ${cl.length} · mocne <b>${m}</b>${snapshot() !== L.base ? " · zmienione" : ""}`;
+      b.classList.add("on"); v.style.display = sv.refined ? "" : "none"; v.textContent = "⇄ " + (L.view === "raw" ? "poprawione" : "surowe");
+    } else {
+      $("savedTxt").textContent = `Lokalna sesja · w bibliotece ${sv.n} Twoich akcentów`; b.classList.remove("on");
+      v.style.display = ""; v.textContent = innerWidth < 900 ? "📚 wczytaj" : "📚 wczytaj zapisane";
+    }
+  }
+  $("savedView").addEventListener("click", () => {
+    const sv = S.ref && S.ref.saved; if (!sv) return;
+    if (S.loaded && S.loaded.from === "lib") {
+      const to = S.loaded.view === "raw" ? "refined" : "raw";
+      applySaved(sv, to, true, false);
+      toast(to === "raw" ? `Surowe tapy (${sv.n}) · ↶ Cofnij wraca` : `Poprawione akcenty (${sv.n}) · ↶ Cofnij wraca`, 2500);
+    } else { applySaved(sv, "refined", true); toast("Wczytano zapisane z biblioteki · ↶ Cofnij przywraca lokalną sesję", 3500); }
+    savedUI();
+  });
 
   // ---------- music library: auto beat grid / drops / reel windows as faint reference ticks ----------
   S.lib = null; S.ref = null; S.pendingRef = null; S.showRef = localStorage.getItem("bt.showRef") !== "0";
@@ -1007,8 +1174,12 @@ if (typeof module !== "undefined") module.exports = BT;
 
   // ---------- export / share ----------
   function exportData() {
-    return BT.buildExport({ file: S.file.name, duration: S.duration, passes: S.passes, drops: S.drops, latency_ms: S.latency,
+    const d = BT.buildExport({ file: S.file.name, duration: S.duration, passes: S.passes, drops: S.drops, latency_ms: S.latency,
                             mode: S.mode, snap: S.mode === "accents" && S.snapOn ? S.snap : null, lv: S.lv, strong_window_ms: S.strongWin });
+    if (S.ref && S.ref.id) d.track_id = S.ref.id;            // add_accents.sh TRACK_ID export.json puts it back into the library
+    if (S.loaded && S.loaded.from === "lib") d.based_on = { source: S.loaded.sv.source, view: S.loaded.view, library_updated: S.loaded.sv.updated,
+                                                            edited: snapshot() !== S.loaded.base };
+    return d;
   }
   async function doExport() {
     if (!S.file) return;
@@ -1039,6 +1210,13 @@ if (typeof module !== "undefined") module.exports = BT;
   window.addEventListener("keydown", (e) => {
     if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
     const k = e.code;
+    if (S.pvOpen) {                       // edit preview: transport only, never taps
+      if (k === "Space" || k === "Enter") { e.preventDefault(); if (!e.repeat) togglePlay(); }
+      else if (k === "Escape") pvClose(); else if (k === "KeyF") pvFull();
+      else if (k === "ArrowLeft" || k === "ArrowRight") { e.preventDefault(); seek(audio.currentTime + (k === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 5 : 1)); }
+      return;
+    }
+    if ($("choose").classList.contains("open")) return;
     if (k === "Space") { e.preventDefault(); if (e.repeat) return; return calib.active ? calibTap(e.timeStamp) : tap(e.timeStamp, e.shiftKey); }
     if (e.repeat && !(k === "ArrowLeft" || k === "ArrowRight")) return;
     if (k === "KeyD") return markDrop(e.timeStamp);
@@ -1204,7 +1382,8 @@ if (typeof module !== "undefined") module.exports = BT;
     S.drops.forEach((t, i) => {
       if (t < t0 || t > t1) return;
       const isSel = S.sel && S.sel.type === "drop" && S.sel.idx === i;
-      g.fillStyle = isSel ? "#fff" : "#FF3B3B"; g.fillRect(X(t) - 2, 0, 4, h);
+      const dw = detail ? 4 : 2;            // overview: thin, so the accents right next to the drop stay visible
+      g.fillStyle = isSel ? "#fff" : "#FF3B3B"; g.fillRect(X(t) - dw / 2, 0, dw, h);
       g.font = "900 13px Inter, Segoe UI, sans-serif"; g.fillText("DROP", X(t) + 5, 14);
     });
     g.fillStyle = "#fff"; g.globalAlpha = 0.9; g.fillRect(X(audio.currentTime) - 1, 0, 2, h); g.globalAlpha = 1;
@@ -1233,7 +1412,7 @@ if (typeof module !== "undefined") module.exports = BT;
     drawRef(g2, w2, h2, t0, t1, true, "bg"); drawWave(g2, w2, h2, t0, t1); drawRef(g2, w2, h2, t0, t1, true, "fg"); drawMarks(g2, w2, h2, t0, t1, true);
     $("time").innerHTML = `${BT.fmt(ct)}<span style="color:var(--muted)"> / ${BT.fmt(S.duration, 0)}</span>`;
   }
-  function loop() { if (audio.paused) return; draw(); requestAnimationFrame(loop); }
+  function loop() { if (audio.paused) return; if (!S.pvOpen) draw(); requestAnimationFrame(loop); }
   window.addEventListener("resize", draw);
 
   // overview: tap / drag = jump
@@ -1277,6 +1456,116 @@ if (typeof module !== "undefined") module.exports = BT;
     cv.addEventListener("pointercancel", () => (st = null));
   })();
 
+  // ---------- edit preview: 9:16 box, images switch exactly on the accents ----------
+  // STRONG = hard cut + punch 1.0→1.06 (ease-out 120 ms) + optional 2-frame white flash; LIGHT = cut with a small
+  // zoom 1.025, no flash (toggle "tylko efekt": zoom only, no cut); DROP = cut + big flash + zoom 1.12. Image index = cuts so far at the song time, so seeks,
+  // the A–B loop and 0.75×/0.5× need nothing special. rAF + the media clock + a small lookahead (frame shows next vsync).
+  const PV = { imgs: [], kind: "", light: localStorage.getItem("bt.pvLight") === "fx" ? "fx" : "cut",   // default: every accent cuts (his are mostly light)
+               flash: localStorage.getItem("bt.pvFlash") !== "0", ev: [], log: null, LOOK: 0.008, urls: [], last: -1 };
+  window.__bt.PV = PV;
+  function pvEvents() {
+    const L = BT.fitLevels(S.passes, S.lv);
+    PV.ev = BT.previewEvents(beatClusters().map((c) => ({ t: c.t, strong: S.mode === "accents" && BT.clusterLevel(c, L) > 0 })), BT.mergeTaps(S.drops, 1.0), PV.light);
+    PV.nAcc = beatClusters().length;
+  }
+  function pvCards(n = 12) {          // public build: abstract gradient cards with big numbers (no game assets)
+    return Array.from({ length: n }, (_, i) => {
+      const c = document.createElement("canvas"); c.width = 1080; c.height = 1920; const g = c.getContext("2d"); g.scale(2, 2);
+      const h = (150 + i * 360 / n) % 360, gr = g.createLinearGradient(0, 0, 540, 960);
+      gr.addColorStop(0, `hsl(${h},85%,52%)`); gr.addColorStop(1, `hsl(${(h + 70) % 360},75%,14%)`);
+      g.fillStyle = gr; g.fillRect(0, 0, 540, 960);
+      g.fillStyle = "rgba(255,255,255,.09)"; g.beginPath(); g.arc(80 + ((i * 173) % 380), 140 + ((i * 251) % 680), 230, 0, 7); g.fill();
+      g.fillStyle = "rgba(0,0,0,.18)"; g.beginPath(); g.arc(460 - ((i * 97) % 380), 820 - ((i * 131) % 600), 170, 0, 7); g.fill();
+      g.fillStyle = "#fff"; g.textAlign = "center"; g.textBaseline = "middle";
+      g.font = "900 380px Inter, Segoe UI, system-ui, sans-serif"; g.fillText(String(i + 1), 270, 470);
+      g.font = "800 26px Inter, Segoe UI, system-ui, sans-serif"; g.fillStyle = "rgba(255,255,255,.75)"; g.fillText("UJĘCIE " + (i + 1), 270, 880);
+      return c;
+    });
+  }
+  const loadImg = (src) => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error(src)); im.src = src; });
+  async function pvDefault() {
+    PV.urls.forEach((u) => URL.revokeObjectURL(u)); PV.urls = [];
+    if (location.protocol !== "file:") try {                 // private build: gameplay stills next to the page
+      const r = await fetch("./preview/manifest.json", { cache: "no-cache" });
+      if (r.ok) { const m = await r.json(), ims = await Promise.all((m.images || []).map((f) => loadImg("./preview/" + f)));
+                  if (ims.length) { PV.imgs = ims; PV.kind = "gameplay"; return; } }
+    } catch (e) { console.warn("preview stills:", e.message); }
+    PV.imgs = pvCards(12); PV.kind = "cards";
+  }
+  function pvTime() { return audio.paused ? audio.currentTime : Math.min(S.duration, clock.at(performance.now()) + PV.LOOK * S.rate); }
+  function pvDraw() {
+    const cv = $("pvCanvas"), g = cv.getContext("2d"), W = cv.width, H = cv.height, t = pvTime();
+    const st = BT.previewState(PV.ev, t, PV.imgs.length), im = PV.imgs[st.img];
+    const fx = BT.previewFx(st.event, st.age, PV.flash);
+    g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+    if (im) {
+      const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height, k = Math.max(W / iw, H / ih) * fx.scale;
+      g.drawImage(im, (W - iw * k) / 2, (H - ih * k) / 2, iw * k, ih * k);
+    }
+    if (fx.flash > 0) { g.fillStyle = `rgba(255,255,255,${fx.flash})`; g.fillRect(0, 0, W, H); }
+    cv.dataset.img = st.img; cv.dataset.cuts = st.cuts;
+    const e = st.event, kind = e ? (e.kind === "drop" ? "DROP" : e.strong ? "MOCNY" : "lekki") : "–";
+    $("pvInfo").textContent = e ? `${e.n ? `akcent ${e.n}/${PV.nAcc}` : "drop"} · ${kind} · ujęcie ${st.img + 1}/${PV.imgs.length}` : `${PV.nAcc} akcentów · ${PV.ev.filter((x) => x.cut).length} cięć`;
+    $("pvInfo").style.color = e && e.age < 0.25 ? (e.kind === "drop" ? "#FF3B3B" : e.strong ? "#FF4FA3" : "#00FF80") : "#fff";
+    $("pvHud").textContent = `${BT.fmt(t, 1)} / ${BT.fmt(S.duration, 0)} · ${S.rate}×${S.loopOn && S.loopB != null ? " · 🔁 A–B" : ""}`;
+    if (PV.log) PV.log.push({ p: performance.now(), ct: audio.currentTime, t, img: st.img, cuts: st.cuts, paused: audio.paused });
+  }
+  function pvTick() { if (!S.pvOpen) return; pvDraw(); requestAnimationFrame(pvTick); }
+  function pvFit() {                  // largest exact 9:16 box inside the free space (CSS never stretches the frame)
+    const r = $("pvWrap").getBoundingClientRect(), w = Math.floor(Math.min(r.width, r.height * 9 / 16));
+    const h = Math.round(w * 16 / 9);
+    $("pvCanvas").style.width = w + "px"; $("pvCanvas").style.height = h + "px";
+    $("pvInfo").style.bottom = Math.max(0, (r.height - h) / 2) + 12 + "px";       // pill sits inside the frame
+  }
+  window.addEventListener("resize", () => S.pvOpen && pvFit());
+  document.addEventListener("fullscreenchange", () => S.pvOpen && setTimeout(pvFit, 50));
+  function pvUI() {
+    $("pvLightS").textContent = PV.light === "cut" ? "cięcie" : "tylko efekt"; $("pvFlashS").textContent = PV.flash ? "ON" : "OFF";
+    $("pvPlay").textContent = audio.paused ? "▶" : "⏸"; $("pvSpd").textContent = `${S.rate}×`;
+    $("pvDef").style.display = PV.kind === "user" ? "" : "none";
+  }
+  async function pvOpen() {
+    if (!S.peaks) return toast("Najpierw wybierz utwór");
+    pvEvents();
+    if (!PV.imgs.length) await pvDefault();
+    S.pvOpen = true; $("prev").classList.add("open"); pvFit(); pvUI(); requestAnimationFrame(pvTick);
+    if (!PV.nAcc) toast("Brak akcentów: stuknij je albo wczytaj zapisane z 📚", 3500);
+    else toast(`Podgląd: ${PV.nAcc} akcentów · ${PV.ev.filter((x) => x.cut).length} cięć · ${PV.kind === "gameplay" ? "klatki z gameplayu" : PV.kind === "user" ? "Twoje zdjęcia" : "karty"}`, 2500);
+  }
+  function pvClose() {
+    S.pvOpen = false; $("prev").classList.remove("open", "fs");
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    draw();
+  }
+  function pvFull() {
+    const el = $("prev"); setTimeout(pvFit, 80);
+    if (document.fullscreenElement || document.webkitFullscreenElement) return (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    const rq = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (rq) Promise.resolve(rq.call(el)).catch(() => el.classList.toggle("fs")); else el.classList.toggle("fs");
+  }
+  $("prevBtn").addEventListener("click", pvOpen);
+  $("pvClose").addEventListener("click", pvClose);
+  $("pvPlay").addEventListener("click", () => { togglePlay(); });
+  $("pvCanvas").addEventListener("click", () => togglePlay());
+  $("pvFull").addEventListener("click", pvFull);
+  $("pvSpd").addEventListener("click", () => { const R = [1, 0.75, 0.5], r = R[(R.indexOf(S.rate) + 1) % R.length];
+    document.querySelector(`.spd[data-r="${r}"]`).click(); pvUI(); });
+  $("pvLight").addEventListener("click", () => { PV.light = PV.light === "cut" ? "fx" : "cut"; try { localStorage.setItem("bt.pvLight", PV.light); } catch {} pvEvents(); pvUI();
+    toast(PV.light === "cut" ? "Lekkie akcenty: cięcie do następnego ujęcia" : "Lekkie akcenty: tylko mały zoom (cięcia tylko na mocnych i dropach)", 2500); });
+  $("pvFlash").addEventListener("click", () => { PV.flash = !PV.flash; try { localStorage.setItem("bt.pvFlash", PV.flash ? "1" : "0"); } catch {} pvUI(); });
+  $("pvAdd").addEventListener("click", () => $("pvFile").click());
+  $("pvFile").addEventListener("change", async (e) => {     // his own photos: local only, never uploaded
+    const fs = [...e.target.files].filter((f) => f.type.startsWith("image/")); e.target.value = ""; if (!fs.length) return;
+    const urls = fs.map((f) => URL.createObjectURL(f));
+    const ims = (await Promise.all(urls.map((u) => loadImg(u).catch(() => null)))).filter(Boolean);
+    if (!ims.length) return toast("Nie mogę otworzyć tych zdjęć", 3000);
+    PV.urls.forEach((u) => URL.revokeObjectURL(u)); PV.urls = urls; PV.imgs = ims; PV.kind = "user"; pvUI();
+    toast(`📷 ${ims.length} zdjęć (tylko na tym urządzeniu)`, 2500);
+  });
+  $("pvDef").addEventListener("click", async () => { await pvDefault(); pvUI(); });
+  audio.addEventListener("play", pvUI); audio.addEventListener("pause", pvUI);
+  window.__bt.pvOpen = pvOpen; window.__bt.pvClose = pvClose;
+
   // ---------- stats ----------
   function update() {
     const cur = S.passes[S.passes.length - 1] || [];
@@ -1298,6 +1587,7 @@ if (typeof module !== "undefined") module.exports = BT;
     $("sPass").textContent = S.passes.length;
     $("sDrops").textContent = BT.mergeTaps(S.drops, 1.0).length;
     $("sLat").textContent = `${S.latency} ms`; $("latShow").textContent = `${S.latency} ms`;
+    savedUI();
     if (audio.paused) draw();
   }
   setMode(S.mode); setPass(false); loopUI(); update(); draw();
