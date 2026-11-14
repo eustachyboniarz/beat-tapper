@@ -91,9 +91,16 @@
   #calTap { flex:1; }
   #libBtn { flex:0 0 auto; padding:10px 12px; font-size:16px; }
   #libList { display:flex; flex-direction:column; gap:8px; overflow:auto; flex:1 1 auto; }
-  .trk { text-align:left; display:block; width:100%; font-size:16px; padding:12px 14px; border-radius:14px; background:var(--card); white-space:normal; }
+  .trkRow { display:flex; gap:8px; align-items:stretch; flex:0 0 auto; }
+  .trk { flex:1 1 auto; min-width:0; text-align:left; display:block; font-size:16px; padding:12px 14px; border-radius:14px; background:var(--card); white-space:normal; }
   .trk.cur { border-color:var(--green); }
+  .trk .tt { display:block; font-size:19px; font-weight:900; letter-spacing:-.2px; }
+  .trk .ar { display:block; color:#cfcfcf; font-size:14px; font-weight:700; margin-top:1px; }
   .trk small { display:block; color:var(--muted); font-size:13px; font-weight:700; margin-top:3px; }
+  .trk .badge { display:inline-block; margin-top:7px; font-size:13px; font-weight:800; padding:3px 9px; border-radius:999px; background:#2a2a2a; color:var(--muted); }
+  .trk .badge.ok { background:rgba(0,255,128,.14); color:var(--green); }
+  .forget { flex:0 0 76px; font-size:13px; font-weight:800; padding:8px 6px; color:var(--muted); white-space:normal; line-height:1.2; }
+  #libNow.ask { color:var(--green); font-weight:800; font-size:16px !important; }
   textarea#out { width:100%; height:110px; background:var(--deep); color:#cfcfcf; border:1px solid var(--line); border-radius:12px;
                  font:12px/1.4 ui-monospace, Consolas, monospace; padding:8px; display:none; -webkit-user-select:text; user-select:text; }
   :root { --strong:#FF4FA3; }
@@ -220,9 +227,10 @@
 
 <div class="modal" id="lib">
   <h2>Biblioteka</h2>
-  <p>Wczytaj <b>LIBRARY.json</b> z Drive (folder „06 Music library”) albo analizę jednego utworu (<b>.analysis.json</b>).
-     Potem wybierz utwór i jego MP3 z telefonu. Auto siatka bitów i dropów pojawi się jako blade kreski, stukasz dalej normalnie.</p>
-  <div class="bar"><button id="libLoad" class="primary">📄 Wczytaj<span class="desk"> JSON</span></button><button id="refToggle">Siatka: <span id="refState">ON</span></button><button id="libClose">Zamknij</button></div>
+  <p id="libIntro">Dotknij utworu. Za pierwszym razem wybierz jego <b>MP3</b> z telefonu (Drive → fps.center – Team / 06 Music library):
+     zostaje zapamiętany na tym telefonie, potem otwiera się od razu. Auto siatka bitów, dropy i najlepsze okna rolki pojawią się jako blade kreski.
+     <span style="color:var(--muted);font-size:14px">Bez internetu: 📄 wczytaj LIBRARY.json / .analysis.json.</span></p>
+  <div class="bar"><button id="libLoad" title="Offline: LIBRARY.json / .analysis.json z Drive">📄 Wczytaj<span class="desk"> JSON</span></button><button id="refToggle">Siatka: <span id="refState">ON</span></button><button id="libClose">Zamknij</button></div>
   <input id="libFile" type="file" accept=".json,application/json,text/plain" hidden>
   <div id="libList"></div>
   <p id="libNow" style="font-size:14px"></p>
@@ -490,7 +498,9 @@ const BT = (() => {
       const name = t.title ? `${t.artist ? t.artist + " - " : ""}${t.title}` : (t.file || t.audio || fallbackName || "utwór");
       return { id: t.id || null, name, title: t.title || name, artist: t.artist || "", bpm: t.bpm || estimateBpm(beats),
                duration: Number(t.duration) || null, beats, downbeats: num(t.downbeats), drops, windows, onsets,
-               file: t.file || t.audio || (t.files && t.files.phone_mp3) || "" };
+               file: t.file || t.audio || (t.files && t.files.phone_mp3) || "",
+               audio_name: t.audio_file_name || String((t.files && t.files.phone_mp3) || "").split("/").pop(),
+               hint: t.get_audio_hint || "", audio_url: typeof t.audio_url === "string" && t.audio_url ? t.audio_url : null };
     };
     const list = Array.isArray(doc.tracks) ? doc.tracks.map(one).filter(Boolean) : [one(doc)].filter(Boolean);
     return list.length ? { tracks: list, isLibrary: Array.isArray(doc.tracks) } : null;
@@ -513,6 +523,15 @@ const BT = (() => {
     return null;
   }
 
+  /** Is this audio file really library track t? Its [id] in the file name, or the duration within tol seconds. */
+  function audioMatches(t, fileName, duration, tol = 0.5) {
+    if (!t) return { ok: false, by: null, diff: null };
+    const diff = Number.isFinite(duration) && Number.isFinite(t.duration) && t.duration ? Math.abs(t.duration - duration) : null;
+    if (t.id && String(fileName || "").includes(t.id)) return { ok: true, by: "id", diff };
+    if (diff != null && diff <= tol) return { ok: true, by: "duration", diff };
+    return { ok: false, by: null, diff };
+  }
+
   const fmt = (s, dec = 2) => {
     if (!Number.isFinite(s) || s < 0) s = 0;
     const m = Math.floor(s / 60), r = s - m * 60;
@@ -520,7 +539,7 @@ const BT = (() => {
   };
 
   return { median, clusters, mergeTaps, estimateBpm, songTimeAt, tapToSongTime, calibrationOffset, addTap,
-           nudge, removeMembers, nearest, buildExport, computePeaks, makeClickWav, parseRef, matchTrack, fmt,
+           nudge, removeMembers, nearest, buildExport, computePeaks, makeClickWav, parseRef, matchTrack, audioMatches, fmt,
            onsetStrengths, snapPreview, loopWrap, fitLevels, clusterLevel, setLevel, strongTap, LIGHT, STRONG, ADDED };
 })();
 if (typeof module !== "undefined") module.exports = BT;
@@ -593,7 +612,8 @@ if (typeof module !== "undefined") module.exports = BT;
   ["dragleave", "drop"].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); $("pick").classList.remove("hover"); }));
   document.addEventListener("drop", (e) => { const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) loadFile(f); });
 
-  async function loadFile(file) {
+  async function loadFile(file, viaRef = null) {
+    const want = viaRef || S.pendingRef; S.pendingRef = null;
     audio.pause();
     S.file = file; S.fileKey = `bt.session.${file.name}.${file.size}`;
     $("pick").textContent = `⏳ ${file.name}`;
@@ -609,6 +629,7 @@ if (typeof module !== "undefined") module.exports = BT;
     } catch (err) {
       console.error(err); $("pick").textContent = `⚠️ ${file.name}: nie da się zdekodować (mp3/m4a/wav)`; return;
     }
+    $("lib").classList.remove("open"); $("libNow").classList.remove("ask");
     S.passes = []; S.lv = []; S.drops = []; S.history = []; S.sel = null; S.loopA = S.loopB = null; S.loopOn = false;
     const prev = localStorage.getItem(S.fileKey);
     if (prev) try {
@@ -618,8 +639,17 @@ if (typeof module !== "undefined") module.exports = BT;
     $("pick").textContent = `🎵 ${file.name} · ${BT.fmt(S.duration, 1)}`; $("pick").classList.add("loaded");
     $("play").disabled = false; $("exportBtn").disabled = false;
     audio.currentTime = 0;
-    attachRef(S.lib && BT.matchTrack(S.lib.tracks, file.name, S.duration) || S.pendingRef);
-    S.pendingRef = null;
+    let ref = null, warn = null;
+    if (want) {
+      const m = BT.audioMatches(want, file.name, S.duration);
+      const other = !m.ok && S.lib && BT.matchTrack(S.lib.tracks, file.name, S.duration);
+      if (m.ok) ref = want;
+      else if (other && BT.audioMatches(other, file.name, S.duration).ok) { ref = other; warn = `⚠️ To nie „${want.title}”, tylko „${other.title}”: przypinam jego siatkę`; }
+      else { ref = want; warn = `⚠️ Ten plik nie pasuje do „${want.title}” (długość ${BT.fmt(S.duration, 1)} zamiast ${BT.fmt(want.duration, 1)}, brak [${want.id}] w nazwie). Siatka może się rozjeżdżać.`; }
+    } else ref = S.lib && BT.matchTrack(S.lib.tracks, file.name, S.duration);
+    attachRef(ref, warn);
+    if (ref && ref.id && BT.audioMatches(ref, file.name, S.duration).ok) { S.attached.set(ref.id, file); if (!onServer(ref)) cacheAudio(ref, file); }
+    renderLib();
     loopUI();
   }
 
@@ -628,34 +658,95 @@ if (typeof module !== "undefined") module.exports = BT;
   try { const L = localStorage.getItem("bt.library"); if (L) S.lib = JSON.parse(L); } catch {}
   const refKey = (t) => (t ? t.id || t.name : null);
   const bpmTxt = (t) => (t.bpm ? `${Number(t.bpm).toFixed(1)} BPM` : "");
-  function attachRef(t) {
+  function attachRef(t, warn = null) {
     S.ref = t || null; refPeaksCache = null; recomputeSnap();
     if (!S.ref) return renderLib();
     const off = S.ref.duration && S.duration && Math.abs(S.ref.duration - S.duration) > 2;
-    toast(off ? `⚠️ Siatka „${S.ref.name}” ma inną długość (${BT.fmt(S.ref.duration, 0)}), sprawdź utwór` : `📚 Auto siatka: ${S.ref.name} · ${bpmTxt(S.ref)}`, 3500);
+    toast(warn ? warn : off ? `⚠️ Siatka „${S.ref.name}” ma inną długość (${BT.fmt(S.ref.duration, 0)}), sprawdź utwór` : `📚 Auto siatka: ${S.ref.name} · ${bpmTxt(S.ref)}`, warn ? 6000 : 3500);
     renderLib();
+  }
+  // ---------- attached audio: this session (Map) + IndexedDB cache on this phone (never uploaded) ----------
+  S.attached = new Map();
+  const AC = { db: null, ids: new Set(), max: 30 * 1024 * 1024 };
+  const idb = () => AC.db || (AC.db = new Promise((res, rej) => {
+    if (!window.indexedDB) return rej(new Error("no IndexedDB"));
+    const r = indexedDB.open("bt-audio", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("audio", { keyPath: "id" });
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const tx = async (mode, fn) => { const db = await idb(); return new Promise((res, rej) => {
+    const t = db.transaction("audio", mode), r = fn(t.objectStore("audio"));
+    t.oncomplete = () => res(r && r.result); t.onerror = t.onabort = () => rej(t.error); }); };
+  AC.keys = () => tx("readonly", (st) => st.getAllKeys());
+  AC.get = (id) => tx("readonly", (st) => st.get(id));
+  AC.del = (id) => tx("readwrite", (st) => st.delete(id));
+  function cacheAudio(t, file) {
+    if (file.size > AC.max || AC.ids.has(t.id) && AC.sizes && AC.sizes[t.id] === file.size) return;
+    tx("readwrite", (st) => st.put({ id: t.id, name: file.name, type: file.type || "audio/mpeg", size: file.size, saved: Date.now(), blob: file }))
+      .then(() => { AC.ids.add(t.id); (AC.sizes ||= {})[t.id] = file.size; renderLib(); try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {} })
+      .catch((e) => console.warn("audio cache:", e && e.message));
+  }
+  window.__bt.AC = AC;
+  const onServer = (t) => !!(t.audio_url && !t.audioFail);   // private build: MP3 served next to the page
+  const hasAudio = (t) => !!(t.id && (S.attached.has(t.id) || AC.ids.has(t.id))) || onServer(t);
+  const askTxt = (t) => `Wybierz plik MP3 tego utworu (Drive → 06 Music library)${t.audio_name ? ": " + t.audio_name : ""}`;
+  function askFile(t) {
+    S.pendingRef = t;
+    $("libNow").textContent = askTxt(t); $("libNow").classList.add("ask");
+    toast(askTxt(t), 6000);
+    $("file").click();                         // stays inside the tap (user gesture) so the phone opens its file picker
+  }
+  function openTrack(t) {
+    const f = t.id && S.attached.get(t.id);
+    if (f && S.file === f) { if (S.ref !== t) attachRef(t); $("lib").classList.remove("open"); draw(); return; }
+    if (f) return loadFile(f, t);
+    if (onServer(t)) {
+      $("libNow").textContent = `⏳ Wczytuję MP3 z serwera: ${t.title}`; $("libNow").classList.remove("ask");
+      fetch(t.audio_url, { cache: "no-cache" }).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.blob(); })
+        .then((b) => loadFile(new File([b], t.audio_name || `${t.id}.mp3`, { type: b.type || "audio/mpeg" }), t))
+        .catch((e) => { t.audioFail = true; renderLib(); toast(`Nie mogę pobrać MP3 (${e.message}). Dotknij utworu jeszcze raz i wybierz plik z telefonu.`, 6000); });
+      return;
+    }
+    if (t.id && AC.ids.has(t.id)) {
+      $("libNow").textContent = `⏳ Otwieram zapisany plik: ${t.title}`; $("libNow").classList.remove("ask");
+      AC.get(t.id).then((rec) => (rec && rec.blob ? ((AC.sizes ||= {})[t.id] = rec.size, loadFile(new File([rec.blob], rec.name, { type: rec.type }), t)) : (AC.ids.delete(t.id), renderLib(), toast(askTxt(t), 6000))))
+        .catch(() => { AC.ids.delete(t.id); renderLib(); toast("Nie mogę odczytać zapisanego pliku, wybierz MP3 jeszcze raz", 4000); });
+      return;
+    }
+    if (S.peaks && !S.ref) { attachRef(t); $("lib").classList.remove("open"); draw(); return; } // pin the grid on an unmatched file by hand
+    askFile(t);
   }
   function renderLib() {
     $("refState").textContent = S.showRef ? "ON" : "OFF"; $("refToggle").classList.toggle("on", S.showRef);
     const list = $("libList"); list.innerHTML = "";
     const tracks = S.lib ? S.lib.tracks : [];
     tracks.forEach((t) => {
+      const row = document.createElement("div"); row.className = "trkRow";
       const b = document.createElement("button");
-      b.className = "trk" + (refKey(S.ref) === refKey(t) ? " cur" : "");
+      b.className = "trk" + (refKey(S.ref) === refKey(t) ? " cur" : ""); b.dataset.id = t.id || "";
+      const add = (tag, cls, txt) => { const e = document.createElement(tag); e.className = cls; e.textContent = txt; b.appendChild(e); return e; };
       const w = t.windows && t.windows[0];
-      const wTxt = w ? ` · rolka #1 ${w.start.toFixed(1)}–${w.end.toFixed(1)} s${w.drop_rel != null ? ` (drop +${Number(w.drop_rel).toFixed(1)} s)` : ""}` : "";
-      b.textContent = t.name;
-      const sm = document.createElement("small");
-      sm.textContent = `${bpmTxt(t)}${t.duration ? " · " + BT.fmt(t.duration, 0) : ""} · ${t.beats.length} bitów · ${t.drops.length} dropów${wTxt}`;
-      b.appendChild(sm);
-      b.addEventListener("click", () => {
-        if (S.peaks) { attachRef(t); $("lib").classList.remove("open"); draw(); return; }
-        S.pendingRef = t; $("lib").classList.remove("open"); toast(`Wybierz plik: ${t.name}`, 3000); $("file").click();
-      });
-      list.appendChild(b);
+      add("span", "tt", t.title || t.name);
+      if (t.artist) add("span", "ar", t.artist);
+      add("small", "", [bpmTxt(t), t.duration ? BT.fmt(t.duration, 0) : "", w ? `rolka #1 ${w.start.toFixed(1)}–${w.end.toFixed(1)} s${w.drop_rel != null ? ` (drop +${Number(w.drop_rel).toFixed(1)} s)` : ""}` : ""].filter(Boolean).join(" · "));
+      add("span", "badge" + (hasAudio(t) ? " ok" : ""), hasAudio(t) ? (onServer(t) && !S.attached.has(t.id) && !AC.ids.has(t.id) ? "✓ audio (serwer)" : "✓ audio") : "+ wybierz MP3");
+      b.addEventListener("click", () => openTrack(t));
+      row.appendChild(b);
+      if (t.id && AC.ids.has(t.id)) {
+        const x = document.createElement("button"); x.className = "forget"; x.textContent = "🗑 zapomnij plik"; x.dataset.id = t.id;
+        x.addEventListener("click", () => AC.del(t.id).catch(() => {}).then(() => {
+          AC.ids.delete(t.id); S.attached.delete(t.id); if (AC.sizes) delete AC.sizes[t.id];
+          renderLib(); toast(`Zapomniano plik: ${t.title}`); }));
+        row.appendChild(x);
+      }
+      list.appendChild(row);
     });
-    $("libNow").textContent = !tracks.length ? "Brak wczytanej biblioteki." :
-      S.ref ? `Teraz: ${S.ref.name}${S.showRef ? "" : " (siatka ukryta)"}` : (S.peaks ? "Ten plik nie pasuje do żadnego utworu: dotknij utworu, żeby przypiąć siatkę ręcznie." : "Dotknij utworu, potem wybierz jego plik.");
+    if ($("libNow").classList.contains("ask") && S.pendingRef) return;
+    $("libNow").classList.remove("ask");
+    if (tracks.some(onServer)) $("libIntro").textContent = "Dotknij utworu: MP3 wczytuje się sam z naszego serwera (prywatnie, przez Tailscale). Auto siatka bitów, dropy i najlepsze okna rolki pojawią się jako blade kreski.";
+    $("libNow").textContent = !tracks.length ? (S.libState === "loading" ? "⏳ Wczytuję bibliotekę…" : "Brak biblioteki (offline?): 📄 wczytaj LIBRARY.json z Drive.") :
+      S.ref ? `Teraz: ${S.ref.name}${S.showRef ? "" : " (siatka ukryta)"}` : (S.peaks ? "Ten plik nie pasuje do żadnego utworu: dotknij utworu, żeby przypiąć siatkę ręcznie." : (tracks.some(onServer) ? "Dotknij utworu, żeby go otworzyć." : "Dotknij utworu: ✓ audio otwiera się od razu, inaczej wybierasz jego MP3."));
+    $("libIntro").dataset.mode = tracks.some(onServer) ? "server" : "phone";
   }
   $("libBtn").addEventListener("click", () => { renderLib(); $("lib").classList.add("open"); });
   $("libClose").addEventListener("click", () => $("lib").classList.remove("open"));
@@ -674,7 +765,21 @@ if (typeof module !== "undefined") module.exports = BT;
     } catch (err) { toast("Nie mogę wczytać JSON: " + err.message, 3500); }
     e.target.value = ""; renderLib(); update(); draw();
   });
-  renderLib();
+  async function fetchLibrary() {                 // same-origin, analysis-only (no audio); file:// has no fetch -> stored/manual library
+    if (location.protocol === "file:") return false;
+    try {
+      const r = await fetch("./library.json", { cache: "no-cache" }); if (!r.ok) throw new Error("HTTP " + r.status);
+      const doc = await r.json(), p = BT.parseRef(doc); if (!p) return false;
+      S.lib = { tracks: p.tracks, source: "online", updated: doc.updated || null };
+      try { localStorage.setItem("bt.library", JSON.stringify(S.lib)); } catch {}
+      return true;
+    } catch (e) { console.warn("library.json:", e.message); return false; }
+  }
+  S.libState = "loading"; renderLib();
+  Promise.all([fetchLibrary(), AC.keys().then((k) => k.forEach((id) => AC.ids.add(id))).catch(() => {})]).then(() => {
+    S.libState = "ready"; renderLib();
+    if (S.lib && S.lib.tracks.length && !S.file) $("lib").classList.add("open");   // open straight on the list
+  });
 
   // ---------- mode (accents | beats), snap preview, A–B loop ----------
   let refPeaksCache = null;
